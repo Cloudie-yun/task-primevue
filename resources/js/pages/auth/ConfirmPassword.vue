@@ -7,9 +7,8 @@ import {
 import InputError from '@/components/InputError.vue';
 import PasskeyVerify from '@/components/PasskeyVerify.vue';
 import PasswordInput from '@/components/PasswordInput.vue';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
+import { Spinner } from '@primeicons/vue';
 import { store } from '@/routes/password/confirm';
 
 defineOptions({
@@ -40,8 +39,22 @@ defineOptions({
         v-slot="{ errors, processing }"
     >
         <div class="space-y-6">
-            <div class="grid gap-2">
-                <Label htmlFor="password">Password</Label>
+            <div class="grid gap-1.5">
+                <FloatLabel variant="on">
+                    <PasswordInput
+                        inputId="password"
+                        name="password"
+                        class="mt-1 block w-full"
+                        required
+                        autocomplete="current-password"
+                        autofocus
+                    />
+                    <Label for="password">Password</Label>
+                </FloatLabel>
+                <Message severity="error" v-if="errors.password" size="small" variant="simple">
+                    {{ errors.password }}
+                </Message>
+                <!-- <Label htmlFor="password">Password</Label>
                 <PasswordInput
                     id="password"
                     name="password"
@@ -51,16 +64,17 @@ defineOptions({
                     autofocus
                 />
 
-                <InputError :message="errors.password" />
+                <InputError :message="errors.password" /> -->
             </div>
 
             <div class="flex items-center">
                 <Button
-                    class="w-full"
+                    type="submit"
+                    fluid
                     :disabled="processing"
                     data-test="confirm-password-button"
                 >
-                    <Spinner v-if="processing" />
+                    <Spinner v-if="processing" class="animate-spin"/>
                     Confirm password
                 </Button>
             </div>

@@ -6,6 +6,8 @@ import {zodResolver} from '@primevue/forms/resolvers/zod';
 import * as z from 'zod';
 import { ref } from 'vue';
 import type { FormInstance } from '@primevue/forms/form';
+// Validation
+import { passwordSchema } from '@/validation/passwordRules';
 
 // Components
 import TextLink from '@/components/TextLink.vue';
@@ -36,15 +38,8 @@ const formRef = ref<FormInstance | null>(null);
 const schema = z.object({
     name: z.string().min(1, 'Name is required'),
     email: z.string().min(1, 'Email is required').email('Enter a valid email'),
-    password: z
-        .string()
-        .min(1, 'Password is required')
-        .min(8, 'Password must be at least 8 characters')
-        .regex(/[a-z]/, 'Password must include a lowercase letter')
-        .regex(/[A-Z]/, 'Password must include an uppercase letter')
-        .regex(/\d/, 'Password must include a number')
-        .regex(/[^A-Za-z0-9]/, 'Password must include a symbol'),
-    password_confirmation: z.string().min(1, 'Password confirmation is required'),
+    password: passwordSchema,
+    password_confirmation: z.string().nonempty('Password confirmation is required'),
 }).refine((data) => data.password === data.password_confirmation, {
     message: 'Passwords do not match',
     path: ['password_confirmation'],

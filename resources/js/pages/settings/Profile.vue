@@ -3,14 +3,15 @@ import { Form, Head, usePage } from '@inertiajs/vue3';
 import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
+// Components
 import DeleteUser from '@/components/DeleteUser.vue';
 import Heading from '@/components/Heading.vue';
-import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+// Routes
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
+// Icon
+import { Spinner } from '@primeicons/vue';
 
 defineOptions({
     layout: {
@@ -44,8 +45,23 @@ const user = computed(() => page.props.auth.user);
             class="space-y-6"
             v-slot="{ errors, processing }"
         >
-            <div class="grid gap-2">
-                <Label for="name">Name</Label>
+            <div class="grid gap-1.5">
+                <FloatLabel variant="on">
+                    <InputText
+                        id="name"
+                        name="name"
+                        fluid
+                        :default-value="user.name"
+                        autocomplete="name"
+                        required
+                    />
+                    <Label for="name">Name</Label>
+                </FloatLabel>
+                <Message severity="error" v-if="errors.name" size="small" variant="simple">
+                    {{ errors.name }}
+                </Message>
+
+                <!-- <Label for="name">Name</Label>
                 <Input
                     id="name"
                     class="mt-1 block w-full"
@@ -55,11 +71,26 @@ const user = computed(() => page.props.auth.user);
                     autocomplete="name"
                     placeholder="Full name"
                 />
-                <InputError class="mt-2" :message="errors.name" />
+                <InputError class="mt-2" :message="errors.name" /> -->
             </div>
 
-            <div class="grid gap-2">
-                <Label for="email">Email address</Label>
+            <div class="grid gap-1.5">
+                <FloatLabel variant="on">
+                    <InputText
+                        id="email"
+                        type="email"
+                        name="email"
+                        fluid
+                        :default-value="user.email"
+                        autocomplete="username"
+                        required
+                    />
+                    <Label for="email">Email address</Label>
+                </FloatLabel>
+                <Message severity="error" v-if="errors.name" size="small" variant="simple">
+                    {{ errors.name }}
+                </Message>
+                <!-- <Label for="email">Email address</Label>
                 <Input
                     id="email"
                     type="email"
@@ -70,9 +101,9 @@ const user = computed(() => page.props.auth.user);
                     autocomplete="username"
                     placeholder="Email address"
                 />
-                <InputError class="mt-2" :message="errors.email" />
+                <InputError class="mt-2" :message="errors.email" /> -->
             </div>
-
+            <!-- <pre>{{ page.props.mustVerifyEmail }} / {{ user.email_verified_at }}</pre> -->
             <div v-if="page.props.mustVerifyEmail && !user.email_verified_at">
                 <p class="-mt-4 text-sm text-muted-foreground">
                     Your email address is unverified.
@@ -94,9 +125,10 @@ const user = computed(() => page.props.auth.user);
             </div>
 
             <div class="flex items-center gap-4">
-                <Button :disabled="processing" data-test="update-profile-button"
-                    >Save</Button
-                >
+                <Button type="submit" :disabled="processing" data-test="update-profile-button">
+                    <Spinner v-if="processing" class="animate-spin" />
+                   Save
+                </Button>
             </div>
         </Form>
     </div>

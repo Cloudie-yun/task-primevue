@@ -2,7 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import PlaceholderPattern from '@/components/PlaceholderPattern.vue';
 import { dashboard } from '@/routes';
-
+import {Check} from '@primeicons/vue';
 defineOptions({
     layout: {
         breadcrumbs: [
@@ -25,7 +25,10 @@ defineOptions({
             <div
                 class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
             >
-                <PlaceholderPattern />
+                <!-- <PlaceholderPattern /> -->
+                <div class="w-full flex justify-center items-center">
+                    <Button severity="info" class="mt-5"><Check />Verify</Button>               
+                </div>
             </div>
             <div
                 class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
