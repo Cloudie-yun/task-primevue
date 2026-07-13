@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Form } from '@inertiajs/vue3';
-import { useTemplateRef } from 'vue';
+import {ref, useTemplateRef } from 'vue';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
+import { Spinner } from '@primeicons/vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +20,8 @@ import {
 import { Label } from '@/components/ui/label';
 
 const passwordInput = useTemplateRef('passwordInput');
+const password = ref('');
+
 </script>
 
 <template>
@@ -68,8 +71,24 @@ const passwordInput = useTemplateRef('passwordInput');
                             </DialogDescription>
                         </DialogHeader>
 
-                        <div class="grid gap-2">
-                            <Label for="password" class="sr-only"
+                        <div class="grid gap-1.5">
+                            <FloatLabel variant="on">
+                                <PasswordInput
+                                    inputId="password"
+                                    name="password"
+                                    :defaultMask="true"
+                                    ref="passwordInput"
+                                    v-model="password"
+                                />
+                                <Label for="password">Password</Label>
+                            </FloatLabel>
+                            <Message severity="error" v-if="errors.password" size="small" variant="simple">
+                                {{ errors.password }}
+                            </Message>
+                            <Message severity="error" v-else-if="!password" size="small" variant="simple">
+                                Password is required
+                            </Message>
+                            <!-- <Label for="password" class="sr-only"
                                 >Password</Label
                             >
                             <PasswordInput
@@ -77,8 +96,9 @@ const passwordInput = useTemplateRef('passwordInput');
                                 name="password"
                                 ref="passwordInput"
                                 placeholder="Password"
-                            />
-                            <InputError :message="errors.password" />
+                            /> -->
+                            <!-- <InputError :message="errors.password" /> -->
+                            
                         </div>
 
                         <DialogFooter class="gap-2">
@@ -96,12 +116,21 @@ const passwordInput = useTemplateRef('passwordInput');
                                 </Button>
                             </DialogClose>
 
-                            <Button
+                            <!-- <Button
                                 type="submit"
                                 variant="destructive"
                                 :disabled="processing"
                                 data-test="confirm-delete-user-button"
                             >
+                                Delete account
+                            </Button> -->
+                            <Button
+                                type="submit"
+                                variant="destructive"
+                                :disabled="processing || !password"
+                                data-test="confirm-delete-user-button"
+                            >
+                                <Spinner v-if="processing" class="animate-spin"/>
                                 Delete account
                             </Button>
                         </DialogFooter>

@@ -1,46 +1,58 @@
 <script setup lang="ts">
-import { Eye, EyeOff } from '@lucide/vue';
 import { ref, useTemplateRef } from 'vue';
 import type { HTMLAttributes } from 'vue';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 
-defineOptions({ inheritAttrs: false });
+import InputPassword from 'primevue/inputpassword';
+import { Eye, EyeSlash } from '@primeicons/vue';
+
+defineOptions({
+    inheritAttrs: false,
+});
 
 const props = defineProps<{
     class?: HTMLAttributes['class'];
+    inputId?: string;
+    name?: string;
+    defaultMask?: boolean;
+    autocomplete?: string;
 }>();
 
-const showPassword = ref(false);
+const mask = ref(props.defaultMask ?? true);
+
+type PasswordInputInstance = {
+    $el?: HTMLElement;
+};
+
 const inputRef = useTemplateRef('inputRef');
 
 defineExpose({
     $el: inputRef,
-    focus: () => inputRef.value?.$el?.focus(),
+    focus: () => (inputRef.value as PasswordInputInstance | null | undefined)?.$el?.focus?.(),
 });
 </script>
 
 <template>
     <div class="relative">
-        <Input
+        <InputPassword
             ref="inputRef"
-            :type="showPassword ? 'text' : 'password'"
-            :class="cn('pr-10', props.class)"
+            :inputId="props.inputId"
+            :name="props.name"
+            :mask="mask"
+            :class="props.class"
+            :autocomplete="props.autocomplete"
+            fluid
             v-bind="$attrs"
         />
+
         <button
             type="button"
-            @click="showPassword = !showPassword"
-            :class="
-                cn(
-                    'absolute inset-y-0 right-0 flex items-center rounded-r-md px-3 text-muted-foreground hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring focus-visible:outline-none',
-                )
-            "
-            :aria-label="showPassword ? 'Hide password' : 'Show password'"
+            @click="mask = !mask"
+            class="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
+            :aria-label="mask ? 'Show password' : 'Hide password'"
             :tabindex="-1"
         >
-            <EyeOff v-if="showPassword" class="size-4" />
-            <Eye v-else class="size-4" />
+            <Eye v-if="mask" />
+            <EyeSlash v-else />
         </button>
     </div>
 </template>

@@ -1,5 +1,5 @@
 import { createInertiaApp } from '@inertiajs/vue3';
-import { createApp, h } from 'vue';
+import { createApp, createSSRApp, h } from 'vue';
 import { initializeTheme } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
@@ -25,23 +25,32 @@ createInertiaApp({
                 return AppLayout;
         }
     },
-    setup({ el, App, props, plugin }) { 
-        createApp({ render: () => h(App, props) })
-            .use(plugin) 
-            .use(PrimeVue, { 
-                theme: { preset: Aura }, 
-                // unstyled: true, 
-                // license: primeUIKey, 
-            }) 
-            .mount(el!);
-        },
+    setup({ el, App, props, plugin }) {
+        const app = (typeof window === 'undefined' ? createSSRApp : createApp)(
+            { render: () => h(App, props) },
+        )
+            .use(plugin)
+            .use(PrimeVue, {
+                theme: { preset: Aura },
+                // unstyled: true,
+                license: primeUIKey,
+            });
+
+        if (el) {
+            app.mount(el);
+        }
+
+        return app;
+    },
     progress: {
         color: '#4B5563',
     },
 });
 
-// This will set light / dark mode on page load...
-initializeTheme();
+if (typeof window !== 'undefined') {
+    // This will set light / dark mode on page load...
+    initializeTheme();
 
-// This will listen for flash toast data from the server...
-initializeFlashToast();
+    // This will listen for flash toast data from the server...
+    initializeFlashToast();
+}
