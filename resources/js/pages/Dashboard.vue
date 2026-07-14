@@ -25,10 +25,10 @@ defineOptions({
             <div
                 class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
             >
-                <!-- <PlaceholderPattern /> -->
-                <div class="w-full flex justify-center items-center">
+                <PlaceholderPattern />
+                <!-- <div class="w-full flex justify-center items-center">
                     <Button severity="info" class="mt-5"><Check />Verify</Button>               
-                </div>
+                </div> -->
             </div>
             <div
                 class="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border"
@@ -42,7 +42,7 @@ defineOptions({
             </div>
         </div>
         <div
-            class="relative min-h-[100vh] flex-1 rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border"
+            class="relative min-h-screen flex-1 rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border"
         >
             <PlaceholderPattern />
         </div>

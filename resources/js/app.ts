@@ -4,8 +4,11 @@ import { initializeTheme } from '@/composables/useAppearance';
 import AppLayout from '@/layouts/AppLayout.vue';
 import AuthLayout from '@/layouts/AuthLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
+import ProductSettingsLayout from '@/layouts/product/Layout.vue'
 import { initializeFlashToast } from '@/lib/flashToast';
 import PrimeVue from 'primevue/config';
+import ConfirmationService from 'primevue/confirmationservice';
+import ToastService from 'primevue/toastservice';
 import Aura from '@primeuix/themes/aura';
 import Noir from '@/theme';
 
@@ -22,6 +25,8 @@ createInertiaApp({
                 return AuthLayout;
             case name.startsWith('settings/'):
                 return [AppLayout, SettingsLayout];
+            case name.startsWith('productSettings/'):
+                return [AppLayout, ProductSettingsLayout];
             default:
                 return AppLayout;
         }
@@ -35,8 +40,9 @@ createInertiaApp({
                 theme: { preset: Aura },
                 // unstyled: true,
                 license: primeUIKey,
-            });
-
+            })
+            .use(ConfirmationService)
+            .use(ToastService);
         if (el) {
             app.mount(el);
         }

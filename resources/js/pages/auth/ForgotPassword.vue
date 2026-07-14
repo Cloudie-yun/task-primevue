@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Form, Head } from '@inertiajs/vue3';
+import { Form, Head, useForm } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,10 @@ defineOptions({
         title: 'Forgot password',
         description: 'Enter your email to receive a password reset link',
     },
+});
+
+const form = useForm({
+    email: '',
 });
 
 defineProps<{
@@ -32,7 +36,7 @@ defineProps<{
     </div>
 
     <div class="space-y-6">
-        <Form v-bind="email.form()" v-slot="{ errors, processing }">
+        <Form :data="form" :action="email.url()" method="post" v-slot="{ errors, processing }">
             <div class="grid gap-2">
                 <Label for="email">Email address</Label>
                 <Input
@@ -42,6 +46,7 @@ defineProps<{
                     autocomplete="off"
                     autofocus
                     placeholder="email@example.com"
+                    v-model="form.email"
                 />
                 <InputError :message="errors.email" />
             </div>

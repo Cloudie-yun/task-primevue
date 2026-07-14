@@ -34,7 +34,7 @@ defineOptions({
     />
 
     <Form
-        v-bind="store.form()"
+        v-bind="store()"
         reset-on-success
         v-slot="{ errors, processing }"
     >
@@ -55,17 +55,6 @@ defineOptions({
                 <Message severity="error" v-if="errors.password" size="small" variant="simple">
                     {{ errors.password }}
                 </Message>
-                <!-- <Label htmlFor="password">Password</Label>
-                <PasswordInput
-                    id="password"
-                    name="password"
-                    class="mt-1 block w-full"
-                    required
-                    autocomplete="current-password"
-                    autofocus
-                />
-
-                <InputError :message="errors.password" /> -->
             </div>
 
             <div class="flex items-center">
