@@ -7,6 +7,7 @@ import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 import PrimeVue from 'primevue/config';
 import Aura from '@primeuix/themes/aura';
+import Noir from '@/theme';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 const primeUIKey = import.meta.env.VITE_PRIMEUI_KEY;

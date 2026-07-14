@@ -48,6 +48,7 @@ defineOptions({
                         required
                         autocomplete="current-password"
                         autofocus
+                        :default-mask="true"
                     />
                     <Label for="password">Password</Label>
                 </FloatLabel>

@@ -125,7 +125,7 @@ const user = computed(() => page.props.auth.user);
             </div>
 
             <div class="flex items-center gap-4">
-                <Button type="submit" :disabled="processing" data-test="update-profile-button">
+                <Button type="submit" :disabled="processing" data-test="update-profile-button" class="max-w-32" fluid>
                     <Spinner v-if="processing" class="animate-spin" />
                    Save
                 </Button>
