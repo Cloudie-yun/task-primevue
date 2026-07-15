@@ -33,7 +33,9 @@ Route::middleware(['auth', 'verified'])
             ->name('variants.update');
         Route::delete('/variants/{variantType}', [VariantTypeController::class, 'destroy'])
             ->name('variants.destroy');
-
+            
+        Route::post('/variants/{variantType}/values', [VariantValueController::class, 'store'])
+            ->name('variant-values.store');            
         Route::patch('/variant-values/{variantValue}', [VariantValueController::class, 'update'])
             ->name('variant-values.update');
         Route::delete('/variant-values/{variantValue}', [VariantValueController::class, 'destroy'])

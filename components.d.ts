@@ -18,6 +18,7 @@ declare module 'vue' {
     DataTable: typeof import('primevue/datatable')['default']
     Dialog: typeof import('primevue/dialog')['default']
     FloatLabel: typeof import('primevue/floatlabel')['default']
+    Inplace: typeof import('primevue/inplace')['default']
     InputGroup: typeof import('primevue/inputgroup')['default']
     InputGroupAddon: typeof import('primevue/inputgroupaddon')['default']
     InputText: typeof import('primevue/inputtext')['default']

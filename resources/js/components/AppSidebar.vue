@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LayoutGrid, Folder } from '@lucide/vue';
+import { BookOpen, FolderGit2, LayoutGrid, Folder, Columns3Cog  } from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -27,7 +27,7 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Product Settings',
         href: categoriesIndex(),
-        icon: Folder,
+        icon: Columns3Cog,
     },
 ];
 

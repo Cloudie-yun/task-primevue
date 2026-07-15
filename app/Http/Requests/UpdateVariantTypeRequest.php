@@ -16,23 +16,14 @@ class UpdateVariantTypeRequest extends FormRequest
         return true;
     }
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
-    public function rules(): array
+   public function rules(): array
     {
-        $variantValue = $this->route('variantValue');
-
         return [
-            'value' => [
+            'name' => [
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('variant_values', 'value')
-                    ->where('variant_type_id', $variantValue->variant_type_id)
-                    ->ignore($variantValue->id),
+                Rule::unique('variant_types', 'name')->ignore($this->route('variantType')),
             ],
         ];
     }

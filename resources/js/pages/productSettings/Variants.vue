@@ -1,43 +1,58 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import Heading from '@/components/Heading.vue';
 import { variants as variantIndex } from '@/routes/product-settings/index';
 import VariantCreate from '@/components/VariantCreate.vue';
+import VariantTypeDelete from '@/components/VariantTypeDelete.vue';
+import VariantEdit from '@/components/VariantEdit.vue';
 import type { VariantType } from '@/types/product-settings';
-// Icon
-import { Plus, Trash, Pencil, Times } from '@primeicons/vue';
+import { Plus, Trash, Pencil } from '@primeicons/vue';
 
 defineOptions({
     layout: {
-        breadcrumbs: [
-            {
-                title: 'Product Variants',
-                href: variantIndex(),
-            },
-        ],
+        breadcrumbs: [{ title: 'Product Variants', href: variantIndex() }],
     },
 });
 
-defineProps<{
+const props = defineProps<{
     variantTypes: VariantType[];
 }>();
 
 const showCreateDialog = ref(false);
+const showEditDialog = ref(false);
 const showDeleteDialog = ref(false);
-const typeToDelete = ref<VariantType | null>(null);
-const editingRows = ref([]);
+const selectedType = ref<VariantType | null>(null);
 
 function handleCreated() {
     router.reload({ only: ['variantTypes'] });
 }
 
-function confirmDeleteValue(valueId: number, valueName: string) {
-    // wire up to your delete dialog / confirm flow
+function handleChanged() {
+    router.reload({
+        only: ['variantTypes'],
+        onSuccess: () => {
+            if (selectedType.value) {
+                const fresh = props.variantTypes.find((t) => t.id === selectedType.value!.id);
+                if (fresh) selectedType.value = fresh;
+            }
+        },
+    });
 }
 
-function confirmDeleteType(type: VariantType) {
-    // wire up to your delete dialog / confirm flow
+function toggleEdit(type: VariantType) {
+    selectedType.value = type;
+    showEditDialog.value = true;
+}
+
+
+function openDeleteDialog(type: VariantType) {
+    selectedType.value = type;
+    showDeleteDialog.value = true;
+}
+
+function handleDeleted() {
+    router.reload({ only: ['variantTypes'] });
 }
 </script>
 
@@ -45,7 +60,7 @@ function confirmDeleteType(type: VariantType) {
     <Head title="Product Variants" />
     <h1 class="sr-only">Product Variants</h1>
 
-    <div class="space-y-6 max-w-5xl">
+    <div class="max-w-5xl space-y-6">
         <div class="flex items-center justify-between">
             <Heading
                 variant="small"
@@ -58,9 +73,14 @@ function confirmDeleteType(type: VariantType) {
             </Button>
         </div>
 
-        <div v-if="variantTypes.length" class="space-y-4">
-            <DataTable :value="variantTypes" stripedRows scrollable scrollHeight="400px" tableStyle="min-width: 50rem">
-                <Column field="name" header="Type" headerStyle="width:20%;">
+        <div v-if="variantTypes.length">
+            <DataTable
+                :value="variantTypes"
+                dataKey="id"
+                tableStyle="min-width: 50rem"
+                stripedRows
+            >
+                <Column field="name" header="Type" headerStyle="width: 20%">
                     <template #body="{ data }">
                         <span class="font-medium">{{ data.name }}</span>
                     </template>
@@ -73,17 +93,10 @@ function confirmDeleteType(type: VariantType) {
                                 v-for="val in data.values"
                                 :key="val.id"
                                 severity="secondary"
-                                class="w-max px-3"
+                                class="w-max px-5!"
                             >
-                                <span class="flex items-center gap-3.5">
-                                    {{ val.value }}
-                                    <Times
-                                        class="cursor-pointer text-xs"
-                                        @click="confirmDeleteValue(val.id, val.value)"
-                                    />
-                                </span>
+                                {{ val.value }}
                             </Tag>
-
                             <span v-if="!data.values?.length" class="text-sm text-muted-foreground">
                                 No values yet
                             </span>
@@ -93,50 +106,23 @@ function confirmDeleteType(type: VariantType) {
 
                 <Column header="" headerStyle="width: 15%" bodyStyle="text-align:center">
                     <template #body="{ data }">
-                        <Button
-                            severity="secondary"
-                            variant="text"
-                            rounded
-                            @click="$emit('edit-type', data)"
-                        >
+                        <Button severity="secondary" variant="text" rounded @click="toggleEdit(data)">
                             <Pencil />
                         </Button>
-                        <Button
-                            severity="danger"
-                            variant="text"
-                            rounded
-                            @click="confirmDeleteType(data)"
-                        >
+                        <Button severity="danger" variant="text" rounded @click="openDeleteDialog(data)">
                             <Trash />
                         </Button>
                     </template>
                 </Column>
             </DataTable>
-            <!-- <div
-                v-for="type in variantTypes"
-                :key="type.id"
-                class="rounded-lg border p-4 space-y-3"
-            >
-                <h3 class="font-medium">{{ type.name }}</h3>
-
-                <div class="flex flex-wrap gap-2">
-                    <Tag
-                        v-for="val in type.values"
-                        :key="val.id"
-                        :value="val.value"
-                        severity="secondary"
-                    />
-                    <span v-if="!type.values?.length" class="text-sm text-muted-foreground">
-                        No values yet
-                    </span>
-                </div>
-            </div> -->
         </div>
 
         <p v-else class="text-sm text-muted-foreground">
             No variant types yet. Click "Add" to create one.
         </p>
 
+        <VariantEdit v-model:visible="showEditDialog" :type="selectedType" @changed="handleChanged" />
         <VariantCreate v-model:visible="showCreateDialog" @created="handleCreated" />
+        <VariantTypeDelete v-model:visible="showDeleteDialog" :type="selectedType" @deleted="handleDeleted" />
     </div>
 </template>
