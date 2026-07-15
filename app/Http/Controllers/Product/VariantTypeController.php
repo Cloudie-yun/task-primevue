@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Product;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreVariantTypeRequest;
-use App\Http\Requests\UpdateVariantTypeRequest;
+use App\Http\Requests\ProductSettings\StoreVariantTypeRequest;
+use App\Http\Requests\ProductSettings\UpdateVariantTypeRequest;
 use App\Models\VariantType;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;

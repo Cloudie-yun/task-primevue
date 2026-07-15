@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LayoutGrid, Folder, Columns3Cog  } from '@lucide/vue';
+import { BookOpen, FolderGit2, LayoutGrid, Folder, MonitorCog   } from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import { index as categoriesIndex } from '@/routes/product-settings';
+import { index as productsIndex } from '@/routes/products';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
@@ -27,7 +28,12 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Product Settings',
         href: categoriesIndex(),
-        icon: Columns3Cog,
+        icon: MonitorCog ,
+    },
+    {
+        title: 'Products',
+        href: productsIndex(),
+        icon: Folder,
     },
 ];
 

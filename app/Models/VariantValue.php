@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class VariantValue extends Model
 {
@@ -19,11 +20,10 @@ class VariantValue extends Model
     }
 
 
-    public function productVariants()
+    public function productVariants(): BelongsToMany
     {
-        return $this->belongsToMany(
-            ProductVariant::class,
-            'product_variant_values'
-        );
+        return $this->belongsToMany(ProductVariant::class, 'product_variant_values')
+            ->using(ProductVariantValue::class)
+            ->withTimestamps();
     }
 }

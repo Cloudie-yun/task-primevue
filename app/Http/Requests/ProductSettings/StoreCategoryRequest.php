@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Requests\ProductSettings;
 
-use Illuminate\Validation\Rule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class StoreVariantTypeRequest extends FormRequest
+class StoreCategoryRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,10 +22,10 @@ class StoreVariantTypeRequest extends FormRequest
                 'required', 
                 'string', 
                 'max:255', 
-                Rule::unique('variant_types', 'name'),
+                Rule::unique('categories', 'name')->ignore($this->route('category')),
             ],
-            'values' => ['required', 'array', 'min:1'],
-            'values.*' => ['required', 'string', 'max:255', 'distinct'],
+            'description' => ['nullable', 'string'],
+            'is_active' => ['sometimes', 'boolean'],
         ];
     }
 }

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Product;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreVariantValueRequest;
-use App\Http\Requests\UpdateVariantValueRequest;
+use App\Http\Requests\ProductSettings\StoreVariantValueRequest;
+use App\Http\Requests\ProductSettings\UpdateVariantValueRequest;
 use App\Models\VariantType;
 use App\Models\VariantValue;
 

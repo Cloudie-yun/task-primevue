@@ -16,6 +16,10 @@ defineOptions({
     layout: {
         breadcrumbs: [
             {
+                title: 'Product Settings',
+                href: '',
+            },
+            {
                 title: 'Categories',
                 href: categoryIndex(),
             }
@@ -90,54 +94,60 @@ function handleDeleted() {
             </Button>
         </div>
 
-        <DataTable 
-            v-model:editingRows="editingRows" 
-            :value="categories" 
-            editMode="row"
-            dataKey="id"
-            stripedRows 
-            removableSort 
-            scrollable 
-            scrollHeight="400px"  
-            class="w-full"
-            @row-edit-save="onRowEditSave"
-        >
-            <Column field="name" header="Name" sortable style="width: 20%" bodyStyle="text-align:left">
-                <template #editor="{data, field }">
-                    <InputText v-model="data[field]" fluid />
-                </template>
-            </Column>
-            <Column field="description" header="Description" sortable style="width: 55%" bodyStyle="text-align:left">
-                <template #body="{ data }">
-                    <span class="text-muted-foreground">{{ data.description ?? '-' }}</span>
-                </template>
-                <template #editor="{data, field }">
-                    <Textarea v-model="data[field]" rows="1" fluid autoScroll />
-                </template>
-            </Column>
-            <Column field="is_active" header="Status" sortable style="width: 10%" bodyStyle="text-align:left">
-                <template #body="{ data }">
-                    <Tag v-if="data.is_active" value="Active" severity="success" />
-                    <Tag v-else value="Inactive" severity="danger" />
-                </template>
-                <template #editor="{data, field }">
-                    <ToggleSwitch v-model="data[field]" />
-                </template>
-            </Column>
-            <Column :rowEditor="true" style="width: 10%" bodyStyle="text-align:center" />
-            <Column field="actions" header="" style="width: 1%" bodyStyle="text-align:center">
-                <template #body="{ data }">
-                    <Button
-                        severity="danger"
-                        variant="text"
-                        @click="openDeleteDialog(data)"
-                        rounded    
-                    >
-                        <Trash />
-                    </Button>
-                </template>
-            </Column>
-        </DataTable>
+        <div v-if="categories.length">
+            <DataTable 
+                v-model:editingRows="editingRows" 
+                :value="categories" 
+                editMode="row"
+                dataKey="id"
+                stripedRows 
+                removableSort 
+                scrollable 
+                scrollHeight="400px"  
+                class="w-full"
+                @row-edit-save="onRowEditSave"
+            >
+                <Column field="name" header="Name" sortable style="width: 20%" bodyStyle="text-align:left">
+                    <template #editor="{data, field }">
+                        <InputText v-model="data[field]" fluid />
+                    </template>
+                </Column>
+                <Column field="description" header="Description" sortable style="width: 55%" bodyStyle="text-align:left">
+                    <template #body="{ data }">
+                        <span class="text-muted-foreground">{{ data.description ?? '-' }}</span>
+                    </template>
+                    <template #editor="{data, field }">
+                        <Textarea v-model="data[field]" rows="1" fluid autoScroll />
+                    </template>
+                </Column>
+                <Column field="is_active" header="Status" sortable style="width: 10%" bodyStyle="text-align:left">
+                    <template #body="{ data }">
+                        <Tag v-if="data.is_active" value="Active" severity="success" />
+                        <Tag v-else value="Inactive" severity="danger" />
+                    </template>
+                    <template #editor="{data, field }">
+                        <ToggleSwitch v-model="data[field]" />
+                    </template>
+                </Column>
+                <Column :rowEditor="true" style="width: 10%" bodyStyle="text-align:center" />
+                <Column field="actions" header="" style="width: 1%" bodyStyle="text-align:center">
+                    <template #body="{ data }">
+                        <Button
+                            severity="danger"
+                            variant="text"
+                            @click="openDeleteDialog(data)"
+                            rounded    
+                        >
+                            <Trash />
+                        </Button>
+                    </template>
+                </Column>
+            </DataTable>
+        </div>
+
+        <p v-else class="text-sm text-muted-foreground">
+            No categories created yet. Click "Add" to create one.
+        </p>
 
         <CategoryCreate v-model:visible="showCreateDialog" @created="handleCreated" />
         <CategoryDelete

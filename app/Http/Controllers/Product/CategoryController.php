@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Product;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreCategoryRequest;
+use App\Http\Requests\ProductSettings\StoreCategoryRequest;
 use App\Models\Category;
 use Inertia\Inertia;
 

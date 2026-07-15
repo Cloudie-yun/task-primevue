@@ -11,7 +11,15 @@ import { Plus, Trash, Pencil } from '@primeicons/vue';
 
 defineOptions({
     layout: {
-        breadcrumbs: [{ title: 'Product Variants', href: variantIndex() }],
+        breadcrumbs: [
+            {
+                title: 'Product Settings',
+                href: '',
+            },
+            { 
+                title: 'Product Variants',
+                href: variantIndex() 
+            }],
     },
 });
 
@@ -92,7 +100,7 @@ function handleDeleted() {
                             <Tag
                                 v-for="val in data.values"
                                 :key="val.id"
-                                severity="secondary"
+                                severity="primary"
                                 class="w-max px-5!"
                             >
                                 {{ val.value }}
