@@ -3,7 +3,7 @@ import { Head } from '@inertiajs/vue3';
 import Heading from '@/components/Heading.vue';
 import ProductForm from '@/components/ProductForm.vue';
 import { index as productsIndex } from '@/routes/products';
-import type { Category } from '@/types/product-settings';
+import type { Category, VariantType } from '@/types/product-settings';
 
 defineOptions({
     layout: {
@@ -16,6 +16,7 @@ defineOptions({
 
 defineProps<{
     categories: Category[];
+    variantTypes: VariantType[];
 }>();
 </script>
 
@@ -29,6 +30,7 @@ defineProps<{
             description="Add a new product to your catalog"
         />
 
-        <ProductForm :categories="categories" />
+        <ProductForm :categories="categories" :variant-types="variantTypes" />
+        <!-- <ProductForm :categories="categories" /> -->
     </div>
 </template>

@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ProductVariantValue extends Model
+class ProductVariantValue extends Pivot
 {
+    public $incrementing = true;
+
     protected $fillable = [
         'product_variant_id',
         'variant_value_id',

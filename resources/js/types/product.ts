@@ -1,4 +1,4 @@
-import type { Category } from './product-settings';
+import type { Category, VariantValue} from './product-settings';
 
 export enum ProductStatus {
     Draft = 'draft',
@@ -30,8 +30,20 @@ export interface Product {
     description: string | null;
     price: string; // decimal:2 casts serialize as string in JSON, not number
     status: ProductStatus;
+    variants?: ProductVariant[];
     media?: Media[]; // present when eager-loaded via with('media')
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
+}
+
+export interface ProductVariant {
+    id: number;
+    product_id: number;
+    sku: string;
+    additional_price: string; // decimal cast → string, same as Product.price
+    stock: number;
+    values: VariantValue[]; // each with its `type` loaded (values.type.name)
+    created_at: string;
+    updated_at: string;
 }

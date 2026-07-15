@@ -3,7 +3,7 @@ import { Head } from '@inertiajs/vue3';
 import Heading from '@/components/Heading.vue';
 import ProductForm from '@/components/ProductForm.vue';
 import { index as productsIndex } from '@/routes/products';
-import type { Category } from '@/types/product-settings';
+import type { Category, VariantType } from '@/types/product-settings';
 import type { Product } from '@/types/product';
 
 defineOptions({
@@ -16,8 +16,9 @@ defineOptions({
 });
 
 defineProps<{
-    product: Product;
+    product?: Product; 
     categories: Category[];
+    variantTypes: VariantType[];
 }>();
 </script>
 
@@ -27,10 +28,11 @@ defineProps<{
     <div class="mx-auto w-full max-w-3xl space-y-6 px-6 py-10">
         <Heading
             variant="small"
-            :title="`Edit ${product.name}`"
+            :title="`Edit ${product?.name}`"
             description="Update product details"
         />
 
-        <ProductForm :product="product" :categories="categories" />
+        <ProductForm :categories="categories" :variant-types="variantTypes" :product="product" />
+        <!-- <ProductForm :product="product" :categories="categories" /> -->
     </div>
 </template>
