@@ -3,7 +3,7 @@ import { router } from '@inertiajs/vue3';
 import { useToast } from 'primevue/usetoast';
 import { ref } from 'vue';
 import CategoryController from '@/actions/App/Http/Controllers/Product/CategoryController';
-import type { Category } from '@/types/category';
+import type { Category } from '@/types/product-settings';
 
 // Icons
 import { ExclamationTriangle } from '@primeicons/vue';

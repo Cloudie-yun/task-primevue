@@ -17,22 +17,6 @@ const Noir = definePreset(Aura, {
             950: '{indigo.950}',
         },
 
-        // Governs InputText, Password, Textarea, Select, DatePicker, etc. all at once —
-        // no need to configure each input component's tokens individually.
-        formField: {
-            paddingX: '0.75rem',
-            paddingY: '0.625rem',
-            borderRadius: '{border.radius.md}',
-            focusRing: {
-                width: '0',
-                style: 'none',
-                color: 'transparent',
-                offset: '0',
-                shadow: 'none',
-            },
-            transitionDuration: '{transition.duration}',
-        },
-
         colorScheme: {
             light: {
                 primary: {
@@ -55,27 +39,6 @@ const Noir = definePreset(Aura, {
                     900: '{zinc.900}',
                     950: '{zinc.950}',
                 },
-                formField: {
-                    background: '{surface.0}',
-                    disabledBackground: '{surface.100}',
-                    filledBackground: '{surface.50}',
-                    filledHoverBackground: '{surface.50}',
-                    filledFocusBackground: '{surface.50}',
-                    borderColor: '{surface.300}',
-                    hoverBorderColor: '{surface.400}',
-                    focusBorderColor: '{primary.color}',
-                    invalidBorderColor: '{red.400}',
-                    color: '{surface.700}',
-                    disabledColor: '{surface.400}',
-                    placeholderColor: '{surface.400}',
-                    invalidPlaceholderColor: '{red.600}',
-                    floatLabelColor: '{surface.400}',
-                    floatLabelFocusColor: '{primary.color}',
-                    floatLabelActiveColor: '{surface.400}',
-                    floatLabelInvalidColor: '{red.400}',
-                    iconColor: '{surface.400}',
-                    shadow: '0 1px 2px 0 rgba(18, 18, 23, 0.05)',
-                },
             },
             dark: {
                 primary: {
@@ -97,66 +60,6 @@ const Noir = definePreset(Aura, {
                     800: '{slate.800}',
                     900: '{slate.900}',
                     950: '{slate.950}',
-                },
-                formField: {
-                    background: '{surface.950}',
-                    disabledBackground: '{surface.700}',
-                    filledBackground: '{surface.800}',
-                    filledHoverBackground: '{surface.800}',
-                    filledFocusBackground: '{surface.800}',
-                    borderColor: '{surface.600}',
-                    hoverBorderColor: '{surface.500}',
-                    focusBorderColor: '{primary.color}',
-                    invalidBorderColor: '{red.900}',
-                    color: '{surface.0}',
-                    disabledColor: '{surface.400}',
-                    placeholderColor: '{surface.400}',
-                    invalidPlaceholderColor: '{red.900}',
-                    floatLabelColor: '{surface.400}',
-                    floatLabelFocusColor: '{primary.color}',
-                    floatLabelActiveColor: '{surface.400}',
-                    floatLabelInvalidColor: '{red.900}',
-                    iconColor: '{surface.400}',
-                    shadow: '0 1px 2px 0 rgba(0, 0, 0, 0.3)',
-                },
-            },
-        },
-    },
-
-    // Optional — only needed if you want Button to diverge from semantic.primary.
-    // By default Button already reads button.background -> primary.color automatically.
-    components: {
-        button: {
-            colorScheme: {
-                light: {
-                    root: {
-                        primary: {
-                            background: '{primary.color}',
-                            hoverBackground: '{primary.hoverColor}',
-                            activeBackground: '{primary.activeColor}',
-                            borderColor: '{primary.color}',
-                            hoverBorderColor: '{primary.hoverColor}',
-                            activeBorderColor: '{primary.activeColor}',
-                            color: '{primary.inverseColor}',
-                            hoverColor: '{primary.inverseColor}',
-                            activeColor: '{primary.inverseColor}',
-                        },
-                    },
-                },
-                dark: {
-                    root: {
-                        primary: {
-                            background: '{primary.color}',
-                            hoverBackground: '{primary.hoverColor}',
-                            activeBackground: '{primary.activeColor}',
-                            borderColor: '{primary.color}',
-                            hoverBorderColor: '{primary.hoverColor}',
-                            activeBorderColor: '{primary.activeColor}',
-                            color: '{primary.inverseColor}',
-                            hoverColor: '{primary.inverseColor}',
-                            activeColor: '{primary.inverseColor}',
-                        },
-                    },
                 },
             },
         },

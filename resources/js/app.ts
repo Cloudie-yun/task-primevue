@@ -37,7 +37,8 @@ createInertiaApp({
         )
             .use(plugin)
             .use(PrimeVue, {
-                theme: { preset: Aura },
+                // theme: { preset: Aura },
+                theme: { preset: Noir },
                 // unstyled: true,
                 license: primeUIKey,
             })

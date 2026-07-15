@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class VariantValue extends Model
 {
@@ -12,9 +13,9 @@ class VariantValue extends Model
     ];
 
 
-    public function type()
+    public function type(): BelongsTo
     {
-        return $this->belongsTo(VariantType::class);
+        return $this->belongsTo(VariantType::class, 'variant_type_id');
     }
 
 

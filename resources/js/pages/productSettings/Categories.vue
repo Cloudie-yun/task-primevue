@@ -6,7 +6,7 @@ import CategoryCreate from '@/components/CategoryCreate.vue';
 import CategoryDelete from '@/components/CategoryDelete.vue';
 import CategoryController from '@/actions/App/Http/Controllers/Product/CategoryController'; 
 import { categories as categoryIndex } from '@/routes/product-settings/index';
-import type { Category } from '@/types/category';
+import type { Category } from '@/types/product-settings';
 import { useToast } from 'primevue/usetoast';
 
 // Icons
@@ -54,8 +54,8 @@ function onRowEditSave(event: { newData: Category; index: number }) {
                 toast.add({ severity: 'success', summary: 'Category updated', life: 3000 });
                 router.reload({ only: ['categories'] });
             },
-            onError: () => {
-                toast.add({ severity: 'error', summary: 'Update failed', life: 3000 });
+            onError: (errors) => {
+                toast.add({ severity: 'error', summary: 'Update failed', detail: Object.values(errors)[0], life: 3000 });
                 router.reload({ only: ['categories'] });
             },
         },
@@ -99,15 +99,15 @@ function handleDeleted() {
             removableSort 
             scrollable 
             scrollHeight="400px"  
-            class="w-full max-w-5xl"
+            class="w-full"
             @row-edit-save="onRowEditSave"
-            >
-            <Column field="name" header="Name" sortable>
+        >
+            <Column field="name" header="Name" sortable style="width: 20%" bodyStyle="text-align:left">
                 <template #editor="{data, field }">
                     <InputText v-model="data[field]" fluid />
                 </template>
             </Column>
-            <Column field="description" header="Description" sortable>
+            <Column field="description" header="Description" sortable style="width: 55%" bodyStyle="text-align:left">
                 <template #body="{ data }">
                     <span class="text-muted-foreground">{{ data.description ?? '-' }}</span>
                 </template>
@@ -115,7 +115,7 @@ function handleDeleted() {
                     <Textarea v-model="data[field]" rows="1" fluid autoScroll />
                 </template>
             </Column>
-            <Column field="is_active" header="Status" sortable>
+            <Column field="is_active" header="Status" sortable style="width: 10%" bodyStyle="text-align:left">
                 <template #body="{ data }">
                     <Tag v-if="data.is_active" value="Active" severity="success" />
                     <Tag v-else value="Inactive" severity="danger" />
@@ -124,8 +124,8 @@ function handleDeleted() {
                     <ToggleSwitch v-model="data[field]" />
                 </template>
             </Column>
-            <Column :rowEditor="true" style="width: 15%" bodyStyle="text-align:center" />
-            <Column field="actions" header="" class="w-[5%] text-center">
+            <Column :rowEditor="true" style="width: 10%" bodyStyle="text-align:center" />
+            <Column field="actions" header="" style="width: 1%" bodyStyle="text-align:center">
                 <template #body="{ data }">
                     <Button
                         severity="danger"
