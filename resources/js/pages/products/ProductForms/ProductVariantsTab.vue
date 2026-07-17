@@ -10,6 +10,12 @@ import { Trash } from '@primeicons/vue';
 
 const props = defineProps<{ product?: Product | null; variantTypes: VariantType[] }>();
 
+const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL'];
+
+function sizeRank(value: string): number {
+    const idx = SIZE_ORDER.indexOf(value.toUpperCase());
+    return idx === -1 ? 999 : idx;
+}
 // Lookup so the filter function below can tell which type each selected value belongs to.
 // IDs are coerced to Number here since Laravel/Inertia can serialize some numeric fields as
 // strings, and a strict "5" !== 5 comparison would silently fail every match below.
@@ -50,9 +56,18 @@ const generating = ref(false);
 // type order in `variantTypes` (not the order values happen to attach in) — so sorting by
 // this key naturally groups rows by the first type (e.g. all Colors together), then by the
 // second type within each group (e.g. Sizes within each color), and so on.
-function buildSortKey(variant: { values: { variant_type_id: number; value: string }[] }): string {
+function buildSortKey(variant: { values: { variant_type_id: number; id: number; value: string }[] }): string {
     return props.variantTypes
-        .map((type) => variant.values.find((value) => value.variant_type_id === type.id)?.value ?? '')
+        .map((type) => {
+            const val = variant.values.find((v) => v.variant_type_id === type.id);
+            if (!val) return '9999';
+            // If filtertype name is size, use sizeRank function
+            if (type.name.toLowerCase() === 'size') {
+                return sizeRank(val.value);
+            }
+            const idx = (type.values ?? []).findIndex((v) => Number(v.id) === Number(val.id));
+            return String(idx === -1 ? 9999 : idx).padStart(4, '0');
+        })
         .join('|');
 }
 
