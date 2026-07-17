@@ -2,6 +2,8 @@
 import { onUnmounted, ref, computed } from 'vue';
 import type { Product } from '@/types/product';
 import { Undo, Times, Trash, Plus } from '@primeicons/vue';
+import ProductImageGallery from './ProductImageGallery.vue';
+
 const props = defineProps<{
     product?: Product | null;
     errors?: string;
@@ -16,6 +18,7 @@ const deletedIds = defineModel<number[]>('deletedIds', { default: () => [] });
 const previews = ref<string[]>([]);
 const validationErrors = ref<string[]>([]);
 const fileUploadRef = ref();
+const stagedIds = ref<string[]>([]);
 
 const remainingImageCount = computed(() => {
     const existingCount = props.product?.media?.length ?? 0;
@@ -64,23 +67,16 @@ function handleSelect(event: { files: File[] }) {
 
     previews.value.forEach((url) => URL.revokeObjectURL(url));
     previews.value = valid.map((f) => URL.createObjectURL(f));
+    stagedIds.value = valid.map(() => crypto.randomUUID());
     images.value = valid;
-    galleriaRenderKey.value++; // array grew too — remount here as well
 }
-
-const galleriaRenderKey = ref(0);
 
 function removeStagedFile(index: number) {
     URL.revokeObjectURL(previews.value[index]);
     previews.value.splice(index, 1);
     images.value = images.value.filter((_, i) => i !== index);
+    stagedIds.value.splice(index, 1);
     fileUploadRef.value?.files?.splice(index, 1);
-    galleriaRenderKey.value++; // force Galleria to remount fresh
-}
-// Called from FileUpload's own remove button
-function removeSelected(index: number)
-{
-    removeStagedFile(index);
 }
 
 function isMarkedForDeletion(mediaId: number): boolean {
@@ -115,7 +111,7 @@ const galleryItems = computed<GalleryItem[]>(() => {
     }));
 
     const staged: GalleryItem[] = images.value.map((file, index) => ({
-        key: `new-${file.name}-${file.size}-${index}`,
+        key: `new-${stagedIds.value[index]}`,
         url: previews.value[index],
         name: file.name,
         kind: 'new',
@@ -126,12 +122,12 @@ const galleryItems = computed<GalleryItem[]>(() => {
     return [...existing, ...staged];
 });
 
-const galleriaVisible = ref(false);
+const galleryVisible = ref(false);
 const activeGalleryIndex = ref(0);
 
 function openPreview(index: number) {
     activeGalleryIndex.value = index;
-    galleriaVisible.value = true;
+    galleryVisible.value = true;
 }
 
 function handleGalleryAction(item: GalleryItem) {
@@ -141,17 +137,21 @@ function handleGalleryAction(item: GalleryItem) {
     }
 
     if (item.kind === 'new' && item.fileIndex !== undefined) {
-        removeStagedFile(item.fileIndex);
+        const totalBefore = galleryItems.value.length;
+        const globalIndex = (props.product?.media?.length ?? 0) + item.fileIndex;
 
-        if (galleryItems.value.length === 0) {
-            galleriaVisible.value = false;
+        if (totalBefore - 1 === 0) {
+            removeStagedFile(item.fileIndex);
+            galleryVisible.value = false;
             return;
         }
 
-        const hasExistingImages = (props.product?.media?.length ?? 0) > 0;
-        activeGalleryIndex.value = hasExistingImages
-            ? 0
-            : Math.min(activeGalleryIndex.value, galleryItems.value.length - 1);
+        // set index BEFORE the item is removed & Gallery remounts
+        activeGalleryIndex.value = globalIndex === totalBefore - 1
+            ? globalIndex - 1
+            : globalIndex;
+
+        removeStagedFile(item.fileIndex);
     }
 }
 
@@ -234,7 +234,7 @@ defineExpose({ reset, hasNoImages });
                             <button
                                 type="button"
                                 class="pointer-events-auto cursor-pointer rounded-full border-0 bg-red-500 p-2 text-white hover:bg-red-600"
-                                @click.stop="removeSelected(i)"
+                                @click.stop="removeStagedFile(i)"
                             >
                                 <Times />
                             </button>
@@ -271,69 +271,10 @@ defineExpose({ reset, hasNoImages });
             </Message>
         </div>
     </div>
-    <Dialog v-model:visible="galleriaVisible" modal :style="{ width:'40rem' }" header="Product Images">
-        <Galleria
-            :value="galleryItems"
-            :activeIndex="activeGalleryIndex"
-            @update:activeIndex="(i) => (activeGalleryIndex = i)"
-            :numVisible="5"
-            :circular="true"
-            :showThumbnails="true"
-            :showIndicators="false"
-            :showItemNavigators="true"
-            :showThumbnailNavigators="true"
-            :pt="{
-                prevButton: { class: 'text-zinc-400!' },
-                nextButton: { class: 'text-zinc-400! bg-black/20' },
-                thumbnailItems: { class: 'gap-5! flex-none mx-auto justify-center' },
-                thumbnailItem: { class: 'mx-0.5! flex-none!' },
-            }"
-        >
-            <template #item="{ item }">
-                <div v-if="item" class="relative flex justify-center">
-                    <img
-                        :src="item.url"
-                        :alt="item.name"
-                        class="max-h-112 object-contain"
-                        :class="{ 'opacity-40 grayscale': item.markedForDeletion }"
-                    />
-                </div>
-            </template>
-
-            <template #thumbnail="{ item }">
-                <img
-                    v-if="item"
-                    :src="item.url"
-                    :alt="item.name"
-                    class="h-16 w-16 object-cover"
-                    :class="{ 'opacity-40 grayscale': item.markedForDeletion }"
-                />
-            </template>
-        </Galleria>
-
-        <template #footer>
-            <div class="flex w-full items-center justify-between">
-                <span class="text-sm text-muted-foreground">
-                    {{ galleryItems[activeGalleryIndex]?.name }}
-                    <Tag v-if="galleryItems[activeGalleryIndex]?.kind === 'new'" value="New" severity="info" class="ml-2" />
-                </span>
-
-                <Button
-                    v-if="galleryItems[activeGalleryIndex]"
-                    :severity="galleryItems[activeGalleryIndex].markedForDeletion ? 'secondary' : 'danger'"
-                    size="small"
-                    @click="handleGalleryAction(galleryItems[activeGalleryIndex])"
-                >
-                    <span v-if="galleryItems[activeGalleryIndex].markedForDeletion" class="flex items-center gap-1.5" >
-                        <Undo  />
-                        Undo removal
-                    </span>
-                    <span v-else class="flex items-center gap-1.5">
-                        <Trash />    
-                        Remove image
-                    </span>
-                </Button>
-            </div>
-        </template>
-    </Dialog>
+    <ProductImageGallery
+        v-model:visible="galleryVisible"
+        v-model:active-index="activeGalleryIndex"
+        :items="galleryItems"
+        @action="handleGalleryAction"
+    />
 </template>

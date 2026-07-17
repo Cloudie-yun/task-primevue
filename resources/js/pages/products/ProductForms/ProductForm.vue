@@ -140,7 +140,7 @@ function archive() {
     <div class="flex justify-end gap-2 border-t pt-6">
         <Button type="button" label="Cancel" severity="secondary" variant="text" @click="$inertia.visit(productsIndex().url)" />
         <Button v-if="product?.status !== 'archived' && isEditing" label="Archive product" severity="danger" variant="text" :loading="form.processing" @click="archive" />
-        <Button type="button" :label="isEditing ? 'Save Changes' : 'Save as Draft'" severity="secondary" :loading="form.processing" @click="submit(product?.status === 'published' ? 'published' : 'draft')" />
+        <Button type="submit" :label="isEditing ? 'Save Changes' : 'Save as Draft'" severity="secondary" :loading="form.processing" @click="submit(product?.status === 'published' ? 'published' : 'draft')" />
         <Button v-if="product?.status !== 'published'" type="button" label="Publish" :loading="form.processing" @click="submit('published')" />
     </div>
 </template>
