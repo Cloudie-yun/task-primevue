@@ -26,8 +26,17 @@ class VariantValueController extends Controller
 
     public function destroy(VariantValue $variantValue)
     {
-        $variantValue->delete();
+        $variants = $value->productVariants()->get(); // however that relation is named
 
-        return back()->with('success', 'Value deleted.');
+        if ($variants->isNotEmpty() && !$request->boolean('force')) {
+            return back()->withErrors([
+                'value' => "Used by {$variants->count()} variant(s): {$variants->pluck('sku')->implode(', ')}",
+            ]);
+        }
+
+        DB::transaction(function () use ($value, $variants) {
+            $variants->each->delete();
+            $value->delete();
+        });
     }
 }

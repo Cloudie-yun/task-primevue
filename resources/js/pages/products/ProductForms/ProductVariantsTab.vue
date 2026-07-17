@@ -246,6 +246,7 @@ function deleteVariant(variant: EditableProductVariant) {
                 scrollHeight="400px"
                 class="w-full"
                 @row-edit-save="onRowEditSave"
+                removableSort 
             >
                 <template #empty> No variants match the selected filters. </template>
                 <Column
