@@ -4,7 +4,7 @@ import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 // Components
-import DeleteUser from '@/components/DeleteUser.vue';
+import DeleteUser from './DeleteUser.vue';
 import Heading from '@/components/Heading.vue';
 import { Label } from '@/components/ui/label';
 // Routes

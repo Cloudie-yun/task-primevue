@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { Form } from '@inertiajs/vue3';
-import {ref, useTemplateRef } from 'vue';
+import { Spinner } from '@primeicons/vue';
+import { ref, useTemplateRef } from 'vue';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import Heading from '@/components/Heading.vue';
-import InputError from '@/components/InputError.vue';
-import { Spinner } from '@primeicons/vue';
 import PasswordInput from '@/components/PasswordInput.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +20,6 @@ import { Label } from '@/components/ui/label';
 
 const passwordInput = useTemplateRef('passwordInput');
 const password = ref('');
-
 </script>
 
 <template>
@@ -36,37 +34,26 @@ const password = ref('');
         >
             <div class="relative space-y-0.5 text-red-600 dark:text-red-100">
                 <p class="font-medium">Warning</p>
-                <p class="text-sm">
-                    Please proceed with caution, this cannot be undone.
-                </p>
+                <p class="text-sm">Please proceed with caution, this cannot be undone.</p>
             </div>
             <Dialog>
                 <DialogTrigger as-child>
-                    <Button variant="destructive" data-test="delete-user-button"
-                        >Delete account</Button
-                    >
+                    <Button variant="destructive" data-test="delete-user-button">Delete account</Button>
                 </DialogTrigger>
                 <DialogContent>
                     <Form
+                        v-slot="{ errors, processing, reset, clearErrors }"
                         v-bind="ProfileController.destroy()"
                         reset-on-success
-                        @error="() => passwordInput?.focus()"
-                        :options="{
-                            preserveScroll: true,
-                        }"
+                        :options="{ preserveScroll: true }"
                         class="space-y-6"
-                        v-slot="{ errors, processing, reset, clearErrors }"
+                        @error="() => passwordInput?.focus()"
                     >
                         <DialogHeader class="space-y-3">
-                            <DialogTitle
-                                >Are you sure you want to delete your
-                                account?</DialogTitle
-                            >
+                            <DialogTitle>Are you sure you want to delete your account?</DialogTitle>
                             <DialogDescription>
-                                Once your account is deleted, all of its
-                                resources and data will also be permanently
-                                deleted. Please enter your password to confirm
-                                you would like to permanently delete your
+                                Once your account is deleted, all of its resources and data will also be permanently
+                                deleted. Please enter your password to confirm you would like to permanently delete your
                                 account.
                             </DialogDescription>
                         </DialogHeader>
@@ -74,63 +61,38 @@ const password = ref('');
                         <div class="grid gap-1.5">
                             <FloatLabel variant="on">
                                 <PasswordInput
-                                    inputId="password"
-                                    name="password"
-                                    :defaultMask="true"
                                     ref="passwordInput"
                                     v-model="password"
+                                    input-id="password"
+                                    name="password"
+                                    :default-mask="true"
                                 />
                                 <Label for="password">Password</Label>
                             </FloatLabel>
-                            <Message severity="error" v-if="errors.password" size="small" variant="simple">
+                            <Message v-if="errors.password" severity="error" size="small" variant="simple">
                                 {{ errors.password }}
                             </Message>
-                            <Message severity="error" v-else-if="!password" size="small" variant="simple">
+                            <Message v-else-if="!password" severity="error" size="small" variant="simple">
                                 Password is required
                             </Message>
-                            <!-- <Label for="password" class="sr-only"
-                                >Password</Label
-                            >
-                            <PasswordInput
-                                id="password"
-                                name="password"
-                                ref="passwordInput"
-                                placeholder="Password"
-                            /> -->
-                            <!-- <InputError :message="errors.password" /> -->
-                            
                         </div>
 
                         <DialogFooter class="gap-2">
                             <DialogClose as-child>
                                 <Button
                                     variant="secondary"
-                                    @click="
-                                        () => {
-                                            clearErrors();
-                                            reset();
-                                        }
-                                    "
+                                    @click="() => { clearErrors(); reset(); }"
                                 >
                                     Cancel
                                 </Button>
                             </DialogClose>
-
-                            <!-- <Button
-                                type="submit"
-                                variant="destructive"
-                                :disabled="processing"
-                                data-test="confirm-delete-user-button"
-                            >
-                                Delete account
-                            </Button> -->
                             <Button
                                 type="submit"
                                 variant="destructive"
                                 :disabled="processing || !password"
                                 data-test="confirm-delete-user-button"
                             >
-                                <Spinner v-if="processing" class="animate-spin"/>
+                                <Spinner v-if="processing" class="animate-spin" />
                                 Delete account
                             </Button>
                         </DialogFooter>

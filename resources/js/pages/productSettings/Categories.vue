@@ -2,8 +2,8 @@
 import { Head, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import Heading from '@/components/Heading.vue';
-import CategoryCreate from '@/components/CategoryCreate.vue';
-import CategoryDelete from '@/components/CategoryDelete.vue';
+import CategoryCreate from './CategoryCreate.vue';
+import CategoryDelete from './CategoryDelete.vue';
 import CategoryController from '@/actions/App/Http/Controllers/Product/CategoryController'; 
 import { categories as categoryIndex } from '@/routes/product-settings/index';
 import type { Category } from '@/types/product-settings';

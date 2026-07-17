@@ -3,7 +3,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import Heading from '@/components/Heading.vue';
 import TextLink from '@/components/TextLink.vue';
-import ProductDelete from '@/components/ProductDelete.vue';
+import ProductDelete from './ProductDelete.vue';
 import { index as productsIndex, create } from '@/routes/products';
 import { edit as productEdit } from '@/routes/products';
 import { Pencil, Trash } from '@primeicons/vue';

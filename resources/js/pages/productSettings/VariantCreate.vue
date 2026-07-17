@@ -1,35 +1,36 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { Form as PVForm } from '@primevue/forms';
+import { Plus, Times } from '@primeicons/vue';
 import { zodResolver } from '@primevue/forms/resolvers/zod';
 import { useToast } from 'primevue/usetoast';
 import { ref, watch } from 'vue';
 import { z } from 'zod';
 import VariantTypeController from '@/actions/App/Http/Controllers/Product/VariantTypeController';
-import { Plus, Times } from '@primeicons/vue';
+import CreateDialogForm, { type CreateDialogSubmitEvent } from '@/components/CreateDialogForm.vue';
 
 const visible = defineModel<boolean>('visible', { default: false });
-const emit = defineEmits<{ created: [] }>();
-const toast = useToast();
-const processing = ref(false);
 
+const emit = defineEmits<{
+    created: [];
+}>();
+
+const toast = useToast();
 const MAX_VALUES = 30;
 
-// Only "name" is tracked by PrimeVue Forms; "values" is managed manually below
 const schema = z.object({
     name: z
         .string()
-        .min(1, "Variant type name is required")
+        .min(1, 'Variant type name is required')
         .max(255, 'Name must be 255 characters or fewer'),
 });
-const resolver = zodResolver(schema);
 
+const resolver = zodResolver(schema);
+const processing = ref(false);
 const values = ref<string[]>([]);
 const newValue = ref('');
 const valuesError = ref('');
 const serverErrors = ref<Record<string, string>>({});
 
-// Reset local state whenever the dialog opens, so stale input/errors don't linger
 watch(visible, (isVisible) => {
     if (isVisible) {
         values.value = [];
@@ -56,11 +57,7 @@ function addValue() {
         return;
     }
 
-    const isDuplicate = values.value.some(
-        (v) => v.toLowerCase() === trimmed.toLowerCase(),
-    );
-
-    if (isDuplicate) {
+    if (values.value.some((value) => value.toLowerCase() === trimmed.toLowerCase())) {
         valuesError.value = 'That value has already been added';
         return;
     }
@@ -74,7 +71,7 @@ function removeValue(index: number) {
     values.value.splice(index, 1);
 }
 
-function handleSubmit({ valid, values: formValues }: { valid: boolean; values: Record<string, any> }) {
+function handleSubmit({ valid, values: formValues }: CreateDialogSubmitEvent) {
     serverErrors.value = {};
 
     if (values.value.length === 0) {
@@ -82,16 +79,15 @@ function handleSubmit({ valid, values: formValues }: { valid: boolean; values: R
         return;
     }
 
-    if (!valid) return;
+    if (!valid) {
+        return;
+    }
 
     processing.value = true;
 
     router.post(
         VariantTypeController.store().url,
-        {
-            name: formValues.name,
-            values: values.value,
-        },
+        { name: formValues.name, values: values.value },
         {
             preserveScroll: true,
             onSuccess: () => {
@@ -102,24 +98,15 @@ function handleSubmit({ valid, values: formValues }: { valid: boolean; values: R
             onError: (errors) => {
                 serverErrors.value = errors;
 
-                // Surface the most relevant server message instead of a generic one
                 const firstErrorKey = Object.keys(errors)[0];
-                const detail = firstErrorKey
-                    ? errors[firstErrorKey]
-                    : 'Please check the form and try again.';
+                const detail = firstErrorKey ? errors[firstErrorKey] : 'Please check the form and try again.';
 
-                toast.add({
-                    severity: 'error',
-                    summary: 'Creation failed',
-                    detail,
-                    life: 5000,
-                });
+                toast.add({ severity: 'error', summary: 'Creation failed', detail, life: 5000 });
 
-                // values.* errors come back keyed like "values.0", "values.1" — 
-                // surface those under the values field specifically
-                const valuesFieldError = Object.entries(errors).find(([key]) =>
-                    key === 'values' || key.startsWith('values.'),
+                const valuesFieldError = Object.entries(errors).find(
+                    ([key]) => key === 'values' || key.startsWith('values.'),
                 );
+
                 if (valuesFieldError) {
                     valuesError.value = valuesFieldError[1];
                 }
@@ -133,21 +120,24 @@ function handleSubmit({ valid, values: formValues }: { valid: boolean; values: R
 </script>
 
 <template>
-    <Dialog v-model:visible="visible" modal header="Add Variant Type" :style="{ width: '28rem' }">
-        <PVForm
-            v-slot="$form"
-            :resolver="resolver"
-            :initial-values="{ name: '' }"
-            @submit="handleSubmit"
-            class="space-y-6 py-6"
-        >
+    <CreateDialogForm
+        v-model:visible="visible"
+        header="Add Variant Type"
+        :dialog-style="{ width: '28rem' }"
+        form-class="space-y-6 py-6"
+        :resolver="resolver"
+        :initial-values="{ name: '' }"
+        :processing="processing"
+        @submit="handleSubmit"
+    >
+        <template #default="{ form }">
             <div class="grid gap-1.5">
                 <FloatLabel variant="on">
                     <InputText id="name" name="name" fluid />
                     <label for="name">Name</label>
                 </FloatLabel>
-                <Message v-if="$form.name?.invalid" severity="error" size="small" variant="simple">
-                    {{ $form.name.error?.message }}
+                <Message v-if="form.name?.invalid" severity="error" size="small" variant="simple">
+                    {{ form.name.error?.message }}
                 </Message>
                 <Message v-else-if="serverErrors.name" severity="error" size="small" variant="simple">
                     {{ serverErrors.name }}
@@ -167,13 +157,10 @@ function handleSubmit({ valid, values: formValues }: { valid: boolean; values: R
                     </InputGroupAddon>
                 </InputGroup>
                 <div v-if="values.length" class="flex flex-wrap gap-2 pt-1">
-                    <Tag v-for="(val, index) in values" :key="val" severity="secondary">
+                    <Tag v-for="(value, index) in values" :key="value" severity="secondary">
                         <span class="flex items-center gap-1.5">
-                            {{ val }}
-                            <Times
-                                class="cursor-pointer text-xs"
-                                @click="removeValue(index)"
-                            />
+                            {{ value }}
+                            <Times class="cursor-pointer text-xs" @click="removeValue(index)" />
                         </span>
                     </Tag>
                 </div>
@@ -184,11 +171,6 @@ function handleSubmit({ valid, values: formValues }: { valid: boolean; values: R
                     {{ values.length }} / {{ MAX_VALUES }} values added
                 </span>
             </div>
-
-            <div class="flex justify-end gap-2 pt-2">
-                <Button type="button" label="Cancel" severity="secondary" variant="text" @click="visible = false" />
-                <Button type="submit" label="Save" :loading="processing" />
-            </div>
-        </PVForm>
-    </Dialog>
+        </template>
+    </CreateDialogForm>
 </template>
