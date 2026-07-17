@@ -39,13 +39,6 @@ class UpdateProductRequest extends FormRequest
         ];
     }
     
-    protected function prepareForValidation(): void
-    {
-        $this->merge([
-            'slug' => Str::slug($this->input('name')),
-        ]);
-    }
-
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {

@@ -22,7 +22,10 @@ class StoreProductRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'category_id' => ['required', 'exists:categories,id'],
-            'slug' => ['nullable', 'string', 'max:255', 'unique:products,slug'],
+            'slug' => [
+                'nullable', 'string', 'max:255',
+                Rule::unique('products', 'slug')->ignore($this->route('product')),
+            ],
             'description' => ['required', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
             'status' => ['required', Rule::enum(ProductStatus::class)],
@@ -32,6 +35,13 @@ class StoreProductRequest extends FormRequest
             'selections' => ['nullable', 'array'],
             'selections.*' => ['array', 'min:1'],
             'selections.*.*' => ['integer', 'exists:variant_values,id'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'slug.unique' => 'Product slug is in use, please change product name',
         ];
     }
 

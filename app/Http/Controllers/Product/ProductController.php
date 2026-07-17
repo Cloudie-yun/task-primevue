@@ -32,7 +32,7 @@ class ProductController extends Controller
     public function create()
     {
         return Inertia::render('products/Create', [
-            'categories' => Category::query()->orderBy('name')->get(['id', 'name']),
+            'categories' => Category::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'variantTypes' => VariantType::with('values')->orderBy('name')->get(),
             'statuses' => collect(ProductStatus::cases())->map(fn ($status) => [
                 'label' => ucfirst($status->value),
@@ -69,7 +69,7 @@ class ProductController extends Controller
     {
         return Inertia::render('products/Edit', [
             'product' => $product->load(['category', 'media', 'variants.values.type']),
-            'categories' => Category::query()->orderBy('name')->get(['id', 'name']),
+            'categories' => Category::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'variantTypes' => VariantType::with('values')->orderBy('name')->get(),
         ]);
     }

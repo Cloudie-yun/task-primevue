@@ -57,7 +57,11 @@ class ProductVariantGenerator
 
     private function generateSku(Product $product, $values): string
     {
-        $base = Str::upper(Str::slug($product->slug, ''));
+        // make the base value to collect from product name, but just use each first letter of the words
+        $base = collect(preg_split('/\s+/', trim($product->name)))
+            ->filter()
+            ->map(fn ($word) => Str::upper(Str::substr($word, 0, 1)))
+            ->implode('');
         $valuePart = $values->map(fn ($v) => Str::upper(Str::slug($v->value, '')))->implode('-');
         $sku = "{$base}-{$valuePart}";
 

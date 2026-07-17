@@ -20,6 +20,7 @@ const activeTabKey = computed(() => `productFormActiveTab-${props.product?.id ??
 
 const form = useForm({
     name: props.product?.name ?? '',
+    slug: props.product?.slug ?? '',
     category_id: props.product?.category_id ?? null,
     description: props.product?.description ?? '',
     price: props.product ? Number(props.product.price) : null,
@@ -35,6 +36,23 @@ watch(() => props.product?.id, () => {
 
 watch(activeTab, (tab) => localStorage.setItem(activeTabKey.value, tab));
 
+const FIELD_TAB_MAP: Record<string, string> = {
+    name: '0',
+    slug: '0', // slug errors surface on the Basic Details tab, alongside name
+    category_id: '0',
+    description: '0',
+    price: '0',
+    images: '1',
+    deleted_image_ids: '1',
+    selections: '2',
+};
+
+function jumpToFirstErrorTab(errors: Record<string, string>) {
+    const firstField = Object.keys(errors)[0];
+    const tab = FIELD_TAB_MAP[firstField];
+    if (tab) activeTab.value = tab;
+}
+
 // ---------- Unsaved changes warning ----------
 function handleBeforeUnload(event: BeforeUnloadEvent) {
     if (form.isDirty) {
@@ -49,6 +67,12 @@ onMounted(() => {
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     removeInertiaListener = router.on('before', (event) => {
+        // only guard actual page navigations — form.patch()/form.post() are visits too,
+        // but they shouldn't trigger the "leaving page" warning on themselves
+        if (event.detail.visit.method !== 'get') {
+            return;
+        }
+
         if (form.isDirty) {
             const confirmed = window.confirm('You have unsaved changes. Leave this page anyway?');
             if (!confirmed) {
@@ -86,6 +110,7 @@ function submit(status: 'draft' | 'published') {
         forceFormData: true,
         onError: (errors: Record<string, string>) => {
             const messages = Object.values(errors);
+            jumpToFirstErrorTab(errors);
             toast.add({ severity: 'error', summary: isEditing.value ? 'Could not update product' : 'Could not create product', detail: messages.length === 1 ? messages[0] : `${messages[0]} (+${messages.length - 1} more issue${messages.length - 1 > 1 ? 's' : ''})`, life: 6000 });
         },
     };
@@ -119,7 +144,7 @@ function archive() {
                     v-model:description="form.description"
                     v-model:price="form.price"
                     :categories="categories"
-                    :errors="form.errors"
+                    :errors="{ ...form.errors, name: form.errors.slug ?? form.errors.name }"
                 />
             </TabPanel>
             <TabPanel value="1">

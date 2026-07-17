@@ -99,7 +99,7 @@ defineExpose({ open });
             <div class="flex w-full items-center justify-between">
                 <span class="text-sm text-muted-foreground">
                     {{ items[activeIndex]?.name }}
-                    <Tag v-if="items[activeIndex]?.kind === 'new'" value="New" severity="info" class="ml-2" />
+                    <Badge v-if="items[activeIndex]?.kind === 'new'" value="New" severity="success" class="ml-2" />
                 </span>
 
                 <Button

@@ -58,7 +58,7 @@ function getStatusSeverity(status?: string) {
 <template>
     <Head title="Edit Product" />
 
-    <div class="mx-auto w-full max-w-3xl space-y-6 px-6 py-10">
+    <div class="mx-auto w-full max-w-4xl space-y-6 px-6 py-10">
         <div class="flex justify-between items-center">
             <Heading
                 variant="small"
