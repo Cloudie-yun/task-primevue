@@ -33,6 +33,7 @@ class ProductController extends Controller
     {
         return Inertia::render('products/Create', [
             'categories' => Category::query()->orderBy('name')->get(['id', 'name']),
+            'variantTypes' => VariantType::with('values')->orderBy('name')->get(),
             'statuses' => collect(ProductStatus::cases())->map(fn ($status) => [
                 'label' => ucfirst($status->value),
                 'value' => $status->value,

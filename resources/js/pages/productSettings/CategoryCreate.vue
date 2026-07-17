@@ -8,6 +8,10 @@ import CreateDialogForm, { type CreateDialogSubmitEvent } from '@/components/Cre
 
 const visible = defineModel<boolean>('visible', { default: false });
 
+const props = defineProps<{
+    initialName?: string;
+}>();
+
 const emit = defineEmits<{
     created: [];
 }>();
@@ -62,7 +66,7 @@ function handleSubmit({ valid, values }: CreateDialogSubmitEvent) {
         header="Add Category"
         dialog-class="w-full h-max max-w-2xl"
         :resolver="resolver"
-        :initial-values="{ name: '', description: '', is_active: true }"
+        :initial-values="{ name:props?.initialName ?? '', description: '', is_active: true }"
         :processing="processing"
         @submit="handleSubmit"
     >

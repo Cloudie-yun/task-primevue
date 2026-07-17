@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import Heading from '@/components/Heading.vue';
-import ProductForm from '@/components/ProductForm.vue';
+import ProductForm from './ProductForms/ProductForm.vue';
 import { index as productsIndex } from '@/routes/products';
 import type { Category, VariantType } from '@/types/product-settings';
 

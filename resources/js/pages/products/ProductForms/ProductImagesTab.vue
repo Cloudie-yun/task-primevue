@@ -1,19 +1,13 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
-import { useToast } from 'primevue/usetoast';
 import { onUnmounted, ref, computed } from 'vue';
-import ProductImageController from '@/actions/App/Http/Controllers/Product/ProductImageController';
 import type { Product } from '@/types/product';
 import { Undo, Times, Trash, Plus } from '@primeicons/vue';
-import { transform } from 'zod';
 const props = defineProps<{
     product?: Product | null;
     errors?: string;
 }>();
 
 const images = defineModel<File[]>({ default: () => [] });
-
-const toast = useToast();
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'];
 const MAX_SIZE_BYTES = 5 * 1024 * 1024;
