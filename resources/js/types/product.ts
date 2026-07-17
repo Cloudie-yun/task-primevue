@@ -31,7 +31,7 @@ export interface Product {
     price: string; // decimal:2 casts serialize as string in JSON, not number
     status: ProductStatus;
     variants?: ProductVariant[];
-    media?: Media[]; // present when eager-loaded via with('media')
+    media?: Media[];// present when eager-loaded via with('media')
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
@@ -47,3 +47,7 @@ export interface ProductVariant {
     created_at: string;
     updated_at: string;
 }
+
+export type EditableProductVariant = Omit<ProductVariant, 'additional_price'> & {
+    additional_price: number;
+};

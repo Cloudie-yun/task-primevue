@@ -19,7 +19,7 @@ class UpdateProductVariantRequest extends FormRequest
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('product_variants', 'sku')->ignore($this->route('productVariant')),
+                Rule::unique('product_variants', 'sku')->ignore($this->route('variant')),
             ],
             'additional_price' => ['required', 'numeric'],
             'stock' => ['required', 'integer', 'min:0'],

@@ -1,0 +1,345 @@
+<script setup lang="ts">
+import { router } from '@inertiajs/vue3';
+import { useToast } from 'primevue/usetoast';
+import { onUnmounted, ref, computed } from 'vue';
+import ProductImageController from '@/actions/App/Http/Controllers/Product/ProductImageController';
+import type { Product } from '@/types/product';
+import { Undo, Times, Trash, Plus } from '@primeicons/vue';
+import { transform } from 'zod';
+const props = defineProps<{
+    product?: Product | null;
+    errors?: string;
+}>();
+
+const images = defineModel<File[]>({ default: () => [] });
+
+const toast = useToast();
+
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'];
+const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+
+const deletedIds = defineModel<number[]>('deletedIds', { default: () => [] });
+const previews = ref<string[]>([]);
+const validationErrors = ref<string[]>([]);
+const fileUploadRef = ref();
+
+const remainingImageCount = computed(() => {
+    const existingCount = props.product?.media?.length ?? 0;
+    const deletedCount = deletedIds.value.length;
+    const newCount = images.value.length;
+
+    return (existingCount - deletedCount) + newCount;
+});
+
+const hasNoImages = computed(() => remainingImageCount.value <= 0);
+
+function validateFiles(files: File[]): File[] {
+    const valid: File[] = [];
+    const errors: string[] = [];
+
+    for (const file of files) {
+        if (!ALLOWED_TYPES.includes(file.type)) {
+            errors.push(`${file.name}: unsupported format (use JPG, PNG, GIF, WEBP, or AVIF)`);
+            continue;
+        }
+        if (file.size > MAX_SIZE_BYTES) {
+            errors.push(`${file.name}: exceeds 5MB limit`);
+            continue;
+        }
+        valid.push(file);
+    }
+
+    validationErrors.value = errors;
+    return valid;
+}
+
+function formatSize(bytes: number) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function handleSelect(event: { files: File[] }) {
+    const valid = validateFiles(event.files);
+
+    if (valid.length !== event.files.length) {
+        fileUploadRef.value?.files?.splice(0, fileUploadRef.value.files.length, ...valid);
+    }
+
+    previews.value.forEach((url) => URL.revokeObjectURL(url));
+    previews.value = valid.map((f) => URL.createObjectURL(f));
+    images.value = valid;
+    galleriaRenderKey.value++; // array grew too — remount here as well
+}
+
+const galleriaRenderKey = ref(0);
+
+function removeStagedFile(index: number) {
+    URL.revokeObjectURL(previews.value[index]);
+    previews.value.splice(index, 1);
+    images.value = images.value.filter((_, i) => i !== index);
+    fileUploadRef.value?.files?.splice(index, 1);
+    galleriaRenderKey.value++; // force Galleria to remount fresh
+}
+// Called from FileUpload's own remove button
+function removeSelected(index: number)
+{
+    removeStagedFile(index);
+}
+
+function isMarkedForDeletion(mediaId: number): boolean {
+    return deletedIds.value.includes(mediaId);
+}
+
+function toggleExisting(mediaId: number) {
+    deletedIds.value = isMarkedForDeletion(mediaId)
+        ? deletedIds.value.filter((id) => id !== mediaId)
+        : [...deletedIds.value, mediaId];
+}
+
+// Gallery mode
+interface GalleryItem {
+    key: string;
+    url: string;
+    name: string;
+    kind: 'existing' | 'new';
+    mediaId?: number;   // present for kind: 'existing'
+    fileIndex?: number; // present for kind: 'new'
+    markedForDeletion: boolean;
+}
+
+const galleryItems = computed<GalleryItem[]>(() => {
+    const existing: GalleryItem[] = (props.product?.media ?? []).map((media) => ({
+        key: `existing-${media.id}`,
+        url: media.original_url,
+        name: media.name,
+        kind: 'existing',
+        mediaId: media.id,
+        markedForDeletion: isMarkedForDeletion(media.id),
+    }));
+
+    const staged: GalleryItem[] = images.value.map((file, index) => ({
+        key: `new-${file.name}-${file.size}-${index}`,
+        url: previews.value[index],
+        name: file.name,
+        kind: 'new',
+        fileIndex: index,
+        markedForDeletion: false,
+    }));
+
+    return [...existing, ...staged];
+});
+
+const galleriaVisible = ref(false);
+const activeGalleryIndex = ref(0);
+
+function openPreview(index: number) {
+    activeGalleryIndex.value = index;
+    galleriaVisible.value = true;
+}
+
+function handleGalleryAction(item: GalleryItem) {
+    if (item.kind === 'existing' && item.mediaId !== undefined) {
+        toggleExisting(item.mediaId);
+        return;
+    }
+
+    if (item.kind === 'new' && item.fileIndex !== undefined) {
+        removeStagedFile(item.fileIndex);
+
+        if (galleryItems.value.length === 0) {
+            galleriaVisible.value = false;
+            return;
+        }
+
+        const hasExistingImages = (props.product?.media?.length ?? 0) > 0;
+        activeGalleryIndex.value = hasExistingImages
+            ? 0
+            : Math.min(activeGalleryIndex.value, galleryItems.value.length - 1);
+    }
+}
+
+function reset() {
+    previews.value.forEach((url) => URL.revokeObjectURL(url));
+    previews.value = [];
+    validationErrors.value = [];
+    images.value = [];
+    deletedIds.value = [];
+    fileUploadRef.value?.clear?.();
+}
+
+onUnmounted(() => {
+    previews.value.forEach((url) => URL.revokeObjectURL(url));
+});
+
+defineExpose({ reset, hasNoImages });
+</script>
+
+<template>
+    <div class="space-y-4">
+        <div v-if="product?.media?.length" class="flex flex-wrap gap-3">
+            <div
+                v-for="(media, i) in product.media"
+                :key="media.id"
+                class="group relative h-24 w-24 cursor-pointer overflow-hidden rounded-md border"
+                :class="{ 'opacity-40 grayscale': isMarkedForDeletion(media.id) }"
+                @click="openPreview(galleryItems.findIndex((g) => g.key === `existing-${media.id}`))"
+            >
+                <img :src="media.original_url" :alt="media.name" class="h-full w-full object-cover" />
+                <Button
+                    v-if="!isMarkedForDeletion(media.id)"
+                    severity="danger"
+                    rounded
+                    class="absolute! right-1 top-1 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+                    @click.stop="toggleExisting(media.id)"
+                >
+                    <Times />
+                </Button>
+                <Button
+                    v-else
+                    severity="secondary"
+                    rounded
+                    class="absolute! right-1 top-1 h-6 w-6"
+                    @click.stop="toggleExisting(media.id)"
+                >
+                    <Undo />
+                </Button>
+            </div>
+        </div>
+        <FileUpload
+            ref="fileUploadRef"
+            :multiple="true"
+            accept="image/*"
+            :maxFileSize="MAX_SIZE_BYTES"
+            mode="advanced"
+            :showUploadButton="false"
+            :showCancelButton="false"
+            :pt="{ root: { class: 'border-0!' } }"
+            @select="handleSelect"
+        >
+            <template #header="{ chooseCallback }">
+                <Button type="button" severity="secondary" variant="outlined" size="small" @click="chooseCallback()">
+                    <Plus />
+                    Add Images
+                </Button>
+            </template>
+
+            <template #content="{ files }">
+                <div v-if="files?.length > 0" class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+                    <div
+                        v-for="(file, i) of files"
+                        :key="file.name + file.type + file.size"
+                        class="group relative cursor-pointer overflow-hidden rounded-lg border border-surface-200 dark:border-surface-700"
+                        @click="openPreview((product?.media?.length ?? 0) + i)"
+                    >
+                        <img :src="previews[i]" :alt="file.name" class="h-32 w-full object-cover" />
+
+                        <div class="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                            <button
+                                type="button"
+                                class="pointer-events-auto cursor-pointer rounded-full border-0 bg-red-500 p-2 text-white hover:bg-red-600"
+                                @click.stop="removeSelected(i)"
+                            >
+                                <Times />
+                            </button>
+                        </div>
+
+                        <div class="p-2">
+                            <div class="truncate text-xs font-medium">{{ file.name }}</div>
+                            <div class="text-xs text-muted-color">{{ formatSize(file.size) }}</div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <template #empty>
+                <div class="rounded-xl border-2 border-dashed border-surface-200 p-12 text-center dark:border-surface-700">
+                    <p class="m-0! text-muted-color!">Drag and drop images here, or click "Add Images" to get started.</p>
+                </div>
+            </template>
+        </FileUpload>
+
+        <div class="pl-4">
+            <p class="text-xs text-muted-foreground">
+                Accepted formats: JPG, PNG, GIF, WEBP, AVIF. Max 5MB per image.
+            </p>
+            <Message v-if="hasNoImages" severity="error" size="small" variant="simple">
+                At least one product image is required.
+            </Message>
+            <Message v-for="(err, i) in validationErrors" :key="i" severity="error" size="small" variant="simple">
+                {{ err }}
+            </Message>
+
+            <Message v-if="errors" severity="error" size="small" variant="simple">
+                {{ errors }}
+            </Message>
+        </div>
+    </div>
+    <Dialog v-model:visible="galleriaVisible" modal :style="{ width:'40rem' }" header="Product Images">
+        <Galleria
+            :value="galleryItems"
+            :activeIndex="activeGalleryIndex"
+            @update:activeIndex="(i) => (activeGalleryIndex = i)"
+            :numVisible="5"
+            :circular="true"
+            :showThumbnails="true"
+            :showIndicators="false"
+            :showItemNavigators="true"
+            :showThumbnailNavigators="true"
+            :pt="{
+                prevButton: { class: 'text-zinc-400!' },
+                nextButton: { class: 'text-zinc-400! bg-black/20' },
+                thumbnailItems: { class: 'gap-5! flex-none mx-auto justify-center' },
+                thumbnailItem: { class: 'mx-0.5! flex-none!' },
+            }"
+        >
+            <template #item="{ item }">
+                <div v-if="item" class="relative flex justify-center">
+                    <img
+                        :src="item.url"
+                        :alt="item.name"
+                        class="max-h-112 object-contain"
+                        :class="{ 'opacity-40 grayscale': item.markedForDeletion }"
+                    />
+                </div>
+            </template>
+
+            <template #thumbnail="{ item }">
+                <img
+                    v-if="item"
+                    :src="item.url"
+                    :alt="item.name"
+                    class="h-16 w-16 object-cover"
+                    :class="{ 'opacity-40 grayscale': item.markedForDeletion }"
+                />
+            </template>
+        </Galleria>
+
+        <template #footer>
+            <div class="flex w-full items-center justify-between">
+                <span class="text-sm text-muted-foreground">
+                    {{ galleryItems[activeGalleryIndex]?.name }}
+                    <Tag v-if="galleryItems[activeGalleryIndex]?.kind === 'new'" value="New" severity="info" class="ml-2" />
+                </span>
+
+                <Button
+                    v-if="galleryItems[activeGalleryIndex]"
+                    :severity="galleryItems[activeGalleryIndex].markedForDeletion ? 'secondary' : 'danger'"
+                    size="small"
+                    @click="handleGalleryAction(galleryItems[activeGalleryIndex])"
+                >
+                    <span v-if="galleryItems[activeGalleryIndex].markedForDeletion" class="flex items-center gap-1.5" >
+                        <Undo  />
+                        Undo removal
+                    </span>
+                    <span v-else class="flex items-center gap-1.5">
+                        <Trash />    
+                        Remove image
+                    </span>
+                </Button>
+            </div>
+        </template>
+    </Dialog>
+</template>

@@ -9,6 +9,13 @@ import Components from 'unplugin-vue-components/vite';
 import {PrimeVueResolver} from '@primevue/auto-import-resolver';
 
 export default defineConfig({
+    optimizeDeps: {
+        include: [
+            'primevue',
+            'primevue/config',
+            '@primeuix/themes',
+        ],
+    },
     plugins: [
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.ts'],
@@ -19,7 +26,10 @@ export default defineConfig({
                 }),
             ],
         }),
-        inertia(),
+        // inertia(),
+        inertia({
+            ssr: false,
+        }),
         tailwindcss(),
         vue({
             template: {

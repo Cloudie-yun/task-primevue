@@ -43,10 +43,15 @@ class ProductController extends Controller
     public function store(StoreProductRequest $request)
     {
         $product = DB::transaction(function () use ($request) {
-            $product = Product::create($request->safe()->except(['image', 'selections']));
+            $product = Product::create($request->safe()->except(['images', 'selections']));
 
-            if ($request->hasFile('image')) {
-                $product->addMediaFromRequest('image')->toMediaCollection('image');
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $index => $image) {
+                    $product->addMedia($image)
+                        ->usingName("{$product->name} image")
+                        ->usingFileName($product->generateImageFileName($image, $index))
+                        ->toMediaCollection('images');
+                }
             }
 
             if ($request->filled('selections')) {
@@ -70,11 +75,29 @@ class ProductController extends Controller
 
     public function update(UpdateProductRequest $request, Product $product)
     {
-        $product->update($request->safe()->except('image'));
+        DB::transaction(function () use ($request, $product) {
+            $product->update($request->safe()->except(['images', 'deleted_image_ids']));
 
-        if ($request->hasFile('image')) {
-            $product->addMediaFromRequest('image')->toMediaCollection('image');
-        }
+            if ($request->filled('deleted_image_ids')) {
+                $product->media()
+                    ->whereIn('id', $request->validated('deleted_image_ids'))
+                    ->get()
+                    ->each(fn ($media) => $media->delete());
+            }
+
+            if ($request->hasFile('images')) {
+                // Continue numbering from however many images already exist,
+                // so re-uploads after a partial delete don't collide with existing file names
+                $startIndex = $product->getMedia('images')->count();
+
+                foreach ($request->file('images') as $i => $image) {
+                    $product->addMedia($image)
+                        ->usingName("{$product->name} image")
+                        ->usingFileName($product->generateImageFileName($image, $startIndex + $i))
+                        ->toMediaCollection('images');
+                }
+            }
+        });
 
         return back()->with('success', 'Product updated.');
     }

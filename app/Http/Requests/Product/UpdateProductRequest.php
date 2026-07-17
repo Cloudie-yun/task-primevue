@@ -2,10 +2,11 @@
 
 namespace App\Http\Requests\Product;
 
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Enums\ProductStatus;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateProductRequest extends FormRequest
 {
@@ -25,7 +26,16 @@ class UpdateProductRequest extends FormRequest
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
             'status' => ['required', Rule::enum(ProductStatus::class)],
-            'image' => ['nullable', 'image', 'max:5120'],
+            'images' => ['nullable', 'array'],
+            'images.*' => ['file', 'mimes:jpg,jpeg,png,gif,webp,avif', 'max:5120'],
+            'deleted_image_ids' => ['nullable', 'array'],
+            'deleted_image_ids.*' => [
+                'integer',
+                Rule::exists('media', 'id')->where(function ($query) {
+                    $query->where('model_id', $this->route('product')->id)
+                        ->where('model_type', \App\Models\Product::class);
+                }),
+            ],
         ];
     }
     
@@ -34,5 +44,19 @@ class UpdateProductRequest extends FormRequest
         $this->merge([
             'slug' => Str::slug($this->input('name')),
         ]);
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            $product = $this->route('product');
+            $newImageCount = count($this->file('images') ?? []);
+            $deletedCount = count($this->input('deleted_image_ids') ?? []);
+            $existingCount = $product->getMedia('images')->count();
+
+            if (($existingCount - $deletedCount) + $newImageCount <= 0) {
+                $validator->errors()->add('images', 'At least one product image is required.');
+            }
+        });
     }
 }

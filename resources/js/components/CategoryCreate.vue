@@ -8,6 +8,10 @@ import { ref } from 'vue';
 // Icons
 import { Spinner } from '@primeicons/vue';
 
+const props = defineProps<{
+    initialName?: string;
+}>();
+
 const visible = defineModel<boolean>('visible', { default: false });
 
 const emit = defineEmits<{
@@ -57,7 +61,7 @@ function handleSubmit({ valid, values }: { valid: boolean; values: Record<string
         <PVForm
             v-slot="$form"
             :resolver="resolver"
-            :initial-values="{ name:'', description:'', is_active: true }"
+            :initial-values="{ name:props?.initialName ?? '', description:'', is_active: true }"
             @submit="handleSubmit"
             class="space-y-6 py-5"
         >

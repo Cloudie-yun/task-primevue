@@ -20,16 +20,16 @@ class ProductVariantController extends Controller
         return back()->with('success', "{$created} variant(s) generated.");
     }
 
-    public function update(UpdateProductVariantRequest $request, ProductVariant $productVariant)
+    public function update(UpdateProductVariantRequest $request, Product $product, ProductVariant $variant)
     {
-        $productVariant->update($request->validated());
+        $variant->update($request->validated());
 
         return back()->with('success', 'Variant updated.');
     }
 
-    public function destroy(ProductVariant $productVariant)
+    public function destroy(Product $product, ProductVariant $variant)
     {
-        $productVariant->delete();
+        $variant->delete();
 
         return back()->with('success', 'Variant deleted.');
     }

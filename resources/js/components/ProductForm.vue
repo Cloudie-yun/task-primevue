@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import { router, useForm } from '@inertiajs/vue3';
 import { useToast } from 'primevue/usetoast';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch, onMounted } from 'vue';
 import ProductController from '@/actions/App/Http/Controllers/Product/ProductController';
 import ProductVariantController from '@/actions/App/Http/Controllers/Product/ProductVariantController';
+import ProductImageController from '@/actions/App/Http/Controllers/Product/ProductImageController';
 import { index as productsIndex } from '@/routes/products';
-import { Trash, Check } from '@primeicons/vue';
+
+import CategoryCreate from '@/components/CategoryCreate.vue';
+import ProductImageManager from '@/components/ProductImageManager.vue';
+import { Trash, Check, Plus } from '@primeicons/vue';
+
 import type { Category, VariantType } from '@/types/product-settings';
-import type { Product, ProductVariant } from '@/types/product';
+import type { Product, EditableProductVariant } from '@/types/product';
+import { productSchema } from '@/validation/product';
 
 const props = defineProps<{
     product?: Product | null;
@@ -17,9 +23,34 @@ const props = defineProps<{
 
 const toast = useToast();
 const isEditing = computed(() => !!props.product);
+const imageManagerRef = ref();
+const loading = ref(false);
+
+
 const activeTab = ref('0');
 
+const activeTabKey = computed(() => {
+    return `productFormActiveTab-${props.product?.id ?? 'new'}`;
+});
+
+watch(
+    () => props.product?.id,
+    () => {
+        const storedTab = localStorage.getItem(activeTabKey.value);
+
+        // Reset to first tab if creating new product
+        activeTab.value = props.product ? (storedTab ?? '0') : '0';
+    },
+    { immediate: true }
+);
+
+watch(activeTab, (newTab) => {
+    localStorage.setItem(activeTabKey.value, newTab);
+});
+
 // ---------- Basic details + image ----------
+const newImages = ref<File[]>([]);
+const newImagePreviews = ref<string[]>([]);
 
 const form = useForm({
     name: props.product?.name ?? '',
@@ -27,38 +58,80 @@ const form = useForm({
     description: props.product?.description ?? '',
     price: props.product ? Number(props.product.price) : null,
     status: props.product?.status ?? 'draft',
-    image: null as File | null,
+    images: [] as File[],
+    deleted_image_ids: [] as number[],
     selections: {} as Record<number, number[]>,
 });
 
-function handleImageSelect(event: { files: File[] }) {
-    form.image = event.files[0] ?? null;
-}
-
 function submit(status: 'draft' | 'published') {
     form.status = status;
+    form.clearErrors();
+
+    const result = productSchema.safeParse({
+        name: form.name,
+        category_id: form.category_id,
+        description: form.description,
+        price: form.price,
+    });
+
+    if (!result.success) {
+        for (const issue of result.error.issues) {
+            const field = issue.path[0] as string;
+            form.setError(field as keyof typeof form.data, issue.message);
+        }
+        activeTab.value = '0';
+        toast.add({
+            severity: 'warn',
+            summary: 'Please Check',
+            detail: 'Please fix the highlighted fields',
+            life: 4000,
+        });
+        return; // stop — don't hit the server at all
+    }
+
+    if (imageManagerRef.value?.hasNoImages) {
+        activeTab.value = '1'; // jump to the Image tab so the user sees why
+        toast.add({
+            severity: 'error',
+            summary: 'No Image Added',
+            detail: 'At least one product image is required',
+            life: 4000,
+        });
+        return;
+    }
 
     const options = {
         forceFormData: true,
-        onError: () => {
+        onError: (errors: Record<string, string>) => {
+            const messages = Object.values(errors);
+            const fieldCount = messages.length;
+
             toast.add({
                 severity: 'error',
                 summary: isEditing.value ? 'Could not update product' : 'Could not create product',
-                detail: 'Please check the form for errors.',
-                life: 5000,
+                detail:
+                    fieldCount === 1
+                        ? messages[0]
+                        : `${messages[0]} (+${fieldCount - 1} more issue${fieldCount - 1 > 1 ? 's' : ''})`,
+                life: 6000,
             });
         },
     };
 
     if (isEditing.value && props.product) {
-        form.patch(ProductController.update(props.product.id).url, options);
+        form.patch(ProductController.update(props.product.id).url, {
+            ...options,
+            onSuccess: () => {
+                imageManagerRef.value?.reset();
+            },
+        });
     } else {
         form.post(ProductController.store().url, options);
     }
 }
 
 function archive() {
-    if (!props.product) return;
+    if (!props.product) return;     
 
     form.status = 'archived';
     form.patch(ProductController.update(props.product.id).url, {
@@ -68,8 +141,48 @@ function archive() {
     });
 }
 
-// ---------- Variant selection (used in both create + edit) ----------
+// ---------- Category autocomplete ----------
+const selectedCategory = ref<Category | null>(
+    props.categories.find((c) => c.id === props.product?.category_id) ?? null,
+);
+const categorySuggestions = ref<Category[]>([]);
+const showCreateCategoryDialog = ref(false);
+const categorySearchQuery = ref('');
+const pendingCategoryName = ref('');
 
+watch(selectedCategory, (val) => {
+    form.category_id = val?.id ?? null;
+});
+
+function searchCategories(event: { query: string }) {
+    categorySearchQuery.value = event.query;
+    const query = event.query.toLowerCase().trim();
+
+    categorySuggestions.value = query
+        ? props.categories.filter((c) => c.name.toLowerCase().includes(query))
+        : [...props.categories];
+}
+
+function openCreateCategoryDialog() {
+    pendingCategoryName.value = categorySearchQuery.value;
+    showCreateCategoryDialog.value = true;
+}
+
+function handleCategoryCreated() {
+    router.reload({
+        only: ['categories'],
+        onSuccess: () => {
+            const created = props.categories.find(
+                (c) => c.name.toLowerCase() === pendingCategoryName.value.toLowerCase(),
+            );
+            if (created) {
+                selectedCategory.value = created;
+            }
+        },
+    });
+}
+
+// ---------- Variant selection (used in both create + edit) ----------
 const selections = reactive<Record<number, number[]>>({});
 
 function toggleValue(typeId: number, valueId: number) {
@@ -117,15 +230,16 @@ function generateVariants() {
 }
 
 // ---------- Existing variant rows (edit mode only) ----------
-
-const localVariants = ref<ProductVariant[]>(
-    props.product?.variants ? props.product.variants.map((v) => ({ 
+const localVariants = ref<EditableProductVariant[]>(
+    (props.product?.variants ?? []).map((v) => ({
         ...v,
-    })) : [],
+        additional_price: Number(v.additional_price),
+    })),
 );
+
 const savingVariantIds = reactive<Record<number, boolean>>({});
 
-function variantIsDirty(variant: ProductVariant): boolean {
+function variantIsDirty(variant: EditableProductVariant): boolean {
     const original = props.product?.variants?.find((v) => v.id === variant.id);
     if (!original) return false;
 
@@ -136,7 +250,7 @@ function variantIsDirty(variant: ProductVariant): boolean {
     );
 }
 
-function saveVariant(variant: ProductVariant) {
+function saveVariant(variant: EditableProductVariant) {
     if (!props.product || !variantIsDirty(variant)) return;
 
     savingVariantIds[variant.id] = true;
@@ -168,8 +282,10 @@ function saveVariant(variant: ProductVariant) {
     );
 }
 
-function deleteVariant(variant: ProductVariant) {
-    router.delete(ProductVariantController.destroy([props.product!.id, variant.id]).url, {
+function deleteVariant(variant: EditableProductVariant) {
+    if (!props.product) return;
+
+    router.delete(ProductVariantController.destroy([props.product.id, variant.id]).url, {
         preserveScroll: true,
         onSuccess: () => {
             toast.add({ severity: 'success', summary: 'Variant deleted', life: 3000 });
@@ -181,7 +297,7 @@ function deleteVariant(variant: ProductVariant) {
     });
 }
 
-function variantLabel(variant: ProductVariant): string {
+function variantLabel(variant: EditableProductVariant): string {
     return variant.values.map((v) => v.value).join(' / ');
 }
 </script>
@@ -203,31 +319,51 @@ function variantLabel(variant: ProductVariant): string {
                             <span>Product name</span>
                             <span aria-hidden="true" class="text-red-500">*</span>
                         </label>
-                        <InputText id="name" v-model="form.name" placeholder="Enter product name" fluid />
+                        <InputText id="name" v-model="form.name" placeholder="Enter product name" fluid :invalid="!!form.errors.name"/>
                         <Message v-if="form.errors.name" severity="error" size="small" variant="simple">
                             {{ form.errors.name }}
                         </Message>
                     </div>
-
                     <div class="grid gap-1.5">
                         <label class="flex gap-2 text-sm font-medium">
                             <span>Category</span>
                             <span aria-hidden="true" class="text-red-500">*</span>
                         </label>
-                        <Select
-                            v-model="form.category_id"
-                            :options="categories"
+
+                        <AutoComplete
+                            v-model="selectedCategory"
+                            :suggestions="categorySuggestions"
                             optionLabel="name"
-                            optionValue="id"
-                            placeholder="Select a category"
+                            placeholder="Search or create a category"
                             fluid
-                            showClear
-                        />
+                            dropdown
+                            :invalid="!!form.errors.category_id"
+                            @complete="searchCategories"
+                        >
+                            <template #empty>
+                                <div class="p-2 text-sm flex gap-2 items-center">
+                                    <p class="text-muted-foreground">No categories found.</p>
+                                    <Button
+                                        text
+                                        @click="openCreateCategoryDialog"
+                                        class=" underline"
+                                    >
+                                        Create new category here
+                                    </Button>
+                                </div>
+                            </template>
+                        </AutoComplete>
+
                         <Message v-if="form.errors.category_id" severity="error" size="small" variant="simple">
                             {{ form.errors.category_id }}
                         </Message>
                     </div>
 
+                    <CategoryCreate
+                        v-model:visible="showCreateCategoryDialog"
+                        :initial-name="pendingCategoryName"
+                        @created="handleCategoryCreated"
+                    />
                     <div class="grid gap-1.5">
                         <label for="description" class="flex gap-2 text-sm font-medium">
                             <span>Description</span>
@@ -240,6 +376,7 @@ function variantLabel(variant: ProductVariant): string {
                             fluid
                             rows="4"
                             autoResize
+                            :invalid="!!form.errors.description"
                         />
                         <Message v-if="form.errors.description" severity="error" size="small" variant="simple">
                             {{ form.errors.description }}
@@ -259,13 +396,14 @@ function variantLabel(variant: ProductVariant): string {
                             locale="en-US"
                             placeholder="Enter product price"
                             fluid
+                            :invalid="!!form.errors.price"
                         />
                         <Message v-if="form.errors.price" severity="error" size="small" variant="simple">
                             {{ form.errors.price }}
                         </Message>
                     </div>
 
-                    <div v-if="isEditing" class="flex items-center justify-between border-t pt-4">
+                    <!-- <div v-if="isEditing" class="flex items-center justify-between border-t pt-4">
                         <div class="flex items-center gap-2 text-sm text-muted-foreground">
                             <span>Current status:</span>
                             <Tag :value="product?.status" severity="secondary" />
@@ -278,31 +416,25 @@ function variantLabel(variant: ProductVariant): string {
                             :loading="form.processing"
                             @click="archive"
                         />
-                    </div>
+                    </div> -->
                 </div>
             </TabPanel>
 
             <!-- ---------- Tab 2: Image ---------- -->
             <TabPanel value="1">
-                <div class="space-y-4 py-4">
-                    <img
-                        v-if="product?.media?.[0]?.original_url && !form.image"
-                        :src="product.media[0].original_url"
-                        alt="Current product image"
-                        class="h-40 w-40 rounded-md object-cover"
-                    />
-
-                    <FileUpload
-                        mode="basic"
-                        accept="image/*"
-                        :maxFileSize="5 * 1024 * 1024"
-                        chooseLabel="Choose image"
-                        @select="handleImageSelect"
-                    />
-                    <Message v-if="form.errors.image" severity="error" size="small" variant="simple">
-                        {{ form.errors.image }}
-                    </Message>
-                </div>
+                <!-- <ProductImageManager
+                    ref="imageManagerRef"
+                    v-model="form.images"
+                    :product="product"
+                    :errors="form.errors.images"
+                /> -->
+                <ProductImageManager
+                    ref="imageManagerRef"
+                    v-model="form.images"
+                    v-model:deleted-ids="form.deleted_image_ids"
+                    :product="product"
+                    :errors="form.errors.images"
+                />
             </TabPanel>
 
             <!-- ---------- Tab 3: Variants ---------- -->
@@ -349,7 +481,7 @@ function variantLabel(variant: ProductVariant): string {
                             <span class="text-sm text-muted-foreground">{{ variantLabel(variant) }}</span>
                             <InputText v-model="variant.sku" placeholder="SKU" fluid />
                             <InputNumber
-                                :v-model="Number(variant.additional_price)"
+                                v-model="variant.additional_price"
                                 mode="currency"
                                 currency="MYR"
                                 locale="en-US"
@@ -385,12 +517,35 @@ function variantLabel(variant: ProductVariant): string {
             @click="$inertia.visit(productsIndex().url)"
         />
         <Button
+            v-if="product?.status !== 'archived' && isEditing"
+            label="Archive product"
+            severity="danger"
+            variant="text"
+            :loading="form.processing"
+            @click="archive"
+        />
+        <Button
+            v-if="product?.status !== 'published'"
             type="button"
-            label="Save as Draft"
+            :label="isEditing ? 'Save Changes' : 'Save as Draft'"
             severity="secondary"
             :loading="form.processing"
             @click="submit('draft')"
         />
-        <Button type="button" label="Publish" :loading="form.processing" @click="submit('published')" />
+        <Button
+            v-else
+            type="button"
+            :label="isEditing ? 'Save Changes' : 'Save as Draft'"
+            severity="secondary"
+            :loading="form.processing"
+            @click="submit('published')"
+        />
+        <Button 
+            v-if="product?.status !== 'published'" 
+            type="button" 
+            label="Publish"
+            :loading="form.processing"
+            @click="submit('published')" 
+        />
     </div>
 </template>

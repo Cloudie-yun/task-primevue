@@ -21,12 +21,13 @@ class StoreProductRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'category_id' => ['nullable', 'exists:categories,id'],
+            'category_id' => ['required', 'exists:categories,id'],
             'slug' => ['nullable', 'string', 'max:255', 'unique:products,slug'],
-            'description' => ['nullable', 'string'],
+            'description' => ['required', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
             'status' => ['required', Rule::enum(ProductStatus::class)],
-            'image' => ['nullable', 'image', 'max:5120'], // 5MB
+            'images' => ['required', 'array', 'min:1'],
+            'images.*' => ['file', 'mimes:jpg,jpeg,png,gif,webp,avif', 'max:5120'],
 
             'selections' => ['nullable', 'array'],
             'selections.*' => ['array', 'min:1'],

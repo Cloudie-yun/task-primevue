@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -32,6 +33,17 @@ class Product extends Model implements HasMedia
         ];
     }
 
+    
+    public function generateImageFileName(\Illuminate\Http\UploadedFile $file, int $index = 0): string
+    {
+        $extension = $file->getClientOriginalExtension();
+        $base = Str::slug($this->slug); // reuse the product's own slug for consistency
+
+        $suffix = $index > 0 ? "-{$index}" : '';
+
+        return "{$base}-{$this->id}{$suffix}.{$extension}";
+    }
+
     // Product belongs to one category
     public function category(): BelongsTo
     {
@@ -48,8 +60,6 @@ class Product extends Model implements HasMedia
     // Spatie image collection
     public function registerMediaCollections(): void
     {
-        $this
-            ->addMediaCollection('image')
-            ->singleFile();
+        $this->addMediaCollection('images');
     }
 }

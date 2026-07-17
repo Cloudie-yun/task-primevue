@@ -6,6 +6,7 @@ use App\Http\Controllers\Product\VariantTypeController;
 use App\Http\Controllers\Product\VariantValueController;
 use App\Http\Controllers\Product\ProductController;
 use App\Http\Controllers\Product\ProductVariantController;
+use App\Http\Controllers\Product\ProductImageController;
 
 Route::middleware(['auth', 'verified'])
     ->prefix('product-settings')
@@ -58,8 +59,10 @@ Route::middleware(['auth', 'verified'])
         Route::patch('/{product}', [ProductController::class, 'update'])->name('update');
         Route::delete('/{product}', [ProductController::class, 'destroy'])->name('destroy');
 
+        Route::delete('/{product}/images/{media}', [ProductImageController::class, 'destroy'])->name('images.destroy')->scopeBindings();
+
         Route::post('/{product}/variants/generate', [ProductVariantController::class, 'generate'])->name('variants.generate');
-        Route::patch('/{product}/variants/{productVariant}', [ProductVariantController::class, 'update'])->name('variants.update');
-        Route::delete('/{product}/variants/{productVariant}', [ProductVariantController::class, 'destroy'])->name('variants.destroy');
+        Route::patch('/{product}/variants/{variant}', [ProductVariantController::class, 'update'])->name('variants.update')->scopeBindings();
+        Route::delete('/{product}/variants/{variant}', [ProductVariantController::class, 'destroy'])->name('variants.destroy')->scopeBindings();
     });
 

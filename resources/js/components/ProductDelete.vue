@@ -4,6 +4,7 @@ import { useToast } from 'primevue/usetoast';
 import { ref } from 'vue';
 import ProductController from '@/actions/App/Http/Controllers/Product/ProductController';
 import type { Product } from '@/types/product';
+import { ExclamationTriangle } from '@primeicons/vue';
 
 const visible = defineModel<boolean>('visible', { default: false });
 const props = defineProps<{ product: Product | null }>();
@@ -36,7 +37,7 @@ function handleDelete() {
 <template>
     <Dialog v-model:visible="visible" modal header="Confirm Deletion" :style="{ width: '26rem' }">
         <div class="flex items-start gap-3">
-            <i class="pi pi-exclamation-triangle text-2xl text-red-500" />
+            <ExclamationTriangle :size="32" class="text-red-500" />
             <p class="text-sm text-muted-foreground">
                 Delete <strong class="text-foreground">{{ product?.name }}</strong>?
                 This product will be moved to trash and can be restored later if needed.

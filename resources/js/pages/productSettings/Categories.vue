@@ -8,6 +8,13 @@ import CategoryController from '@/actions/App/Http/Controllers/Product/CategoryC
 import { categories as categoryIndex } from '@/routes/product-settings/index';
 import type { Category } from '@/types/product-settings';
 import { useToast } from 'primevue/usetoast';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Tag from 'primevue/tag';
+import Button from 'primevue/button';
+import ToggleSwitch from 'primevue/toggleswitch';
+import Textarea from 'primevue/textarea';
+import InputText from 'primevue/inputtext';
 
 // Icons
 import { Plus, Trash } from '@primeicons/vue';
