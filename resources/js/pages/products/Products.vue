@@ -141,7 +141,6 @@ function statusSeverity(status: string) {
                             Create one now
                         </TextLink>
                     </p>
-                    
                 </template>
             </DataTable>
         </div>

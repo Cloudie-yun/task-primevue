@@ -7,6 +7,7 @@ import { ref, watch } from 'vue';
 import { z } from 'zod';
 import VariantTypeController from '@/actions/App/Http/Controllers/Product/VariantTypeController';
 import CreateDialogForm, { type CreateDialogSubmitEvent } from '@/components/CreateDialogForm.vue';
+import Label from '@/components/ui/label/Label.vue';
 
 const visible = defineModel<boolean>('visible', { default: false });
 
@@ -145,17 +146,23 @@ function handleSubmit({ valid, values: formValues }: CreateDialogSubmitEvent) {
             </div>
 
             <div class="grid gap-1.5">
-                <label class="text-sm font-medium">Values</label>
-                <InputGroup>
-                    <InputText
-                        v-model="newValue"
-                        placeholder="Type a value and press Enter"
-                        @keydown.enter.prevent="addValue"
-                    />
-                    <InputGroupAddon @click="addValue">
-                        <Plus />
-                    </InputGroupAddon>
-                </InputGroup>
+                <div class="grid">
+                    <Label class="text-zinc-400 text-xs justify-end">Type a value and press Enter</Label>
+                    <InputGroup>
+                        <FloatLabel variant="on">
+                            <InputText
+                                v-model="newValue"
+                                @keydown.enter.prevent="addValue"
+                                :invalid="!!valuesError"
+                            />
+                            <label>Values</label>
+                        </FloatLabel>
+                        <InputGroupAddon @click="addValue">
+                            <Plus />
+                        </InputGroupAddon>
+                    </InputGroup>
+                </div>
+                
                 <div v-if="values.length" class="flex flex-wrap gap-2 pt-1">
                     <Tag v-for="(value, index) in values" :key="value" severity="secondary">
                         <span class="flex items-center gap-1.5">

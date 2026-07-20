@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 return new class extends Migration
 {
@@ -23,6 +24,11 @@ return new class extends Migration
         Schema::table('variant_values', function (Blueprint $table) {
             $table->unsignedInteger('sort_order')->default(0)->after('value');
         });
+
+        // migration C: add soft delete for Category table
+        Schema::table('categories', function (Blueprint $table) {
+            $table->softDeletes();
+        });
     }
 
     /**
@@ -39,6 +45,10 @@ return new class extends Migration
 
         Schema::table('variant_values', function (Blueprint $table) {
             $table->dropColumn('sort_order');
+        });
+
+        Schema::table('categories', function (Blueprint $table) {
+            $table->dropSoftDeletes();
         });
     }
 };

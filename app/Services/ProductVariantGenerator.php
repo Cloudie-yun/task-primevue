@@ -62,7 +62,7 @@ class ProductVariantGenerator
             ->filter()
             ->map(fn ($word) => Str::upper(Str::substr($word, 0, 1)))
             ->implode('');
-        $valuePart = $values->map(fn ($v) => Str::upper(Str::slug($v->value, '')))->implode('-');
+        $valuePart = $values->sortBy('variant_type_id')->map(fn ($v) => Str::upper(Str::slug($v->value, '')))->implode('-');
         $sku = "{$base}-{$valuePart}";
 
         $suffix = 1;

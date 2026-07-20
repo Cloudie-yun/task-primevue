@@ -11,8 +11,15 @@ class VariantValue extends Model
     protected $fillable = [
         'variant_type_id',
         'value',
+        'sort_order'
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'sort_order' => 'integer',
+        ];
+    }
 
     public function type(): BelongsTo
     {

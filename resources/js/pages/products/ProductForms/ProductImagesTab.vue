@@ -58,6 +58,10 @@ function formatSize(bytes: number) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
+function openFileDialog() {
+    fileUploadRef.value?.choose();
+}
+
 function handleSelect(event: { files: File[] }) {
     const valid = validateFiles(event.files);
 
@@ -208,17 +212,21 @@ defineExpose({ reset, hasNoImages });
             accept="image/*"
             :maxFileSize="MAX_SIZE_BYTES"
             mode="advanced"
+            :showChooseButton="false"
             :showUploadButton="false"
             :showCancelButton="false"
-            :pt="{ root: { class: 'border-0!' } }"
+            :pt="{ 
+                root: { class: 'border-0!' },
+                header: { class: 'hidden!'}
+            }"
             @select="handleSelect"
         >
-            <template #header="{ chooseCallback }">
+            <!-- <template #header="{ chooseCallback }">
                 <Button type="button" severity="secondary" variant="outlined" size="small" @click="chooseCallback()">
                     <Plus />
                     Add Images
                 </Button>
-            </template>
+            </template> -->
 
             <template #content="{ files }">
                 <div v-if="files?.length > 0" class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
@@ -245,12 +253,22 @@ defineExpose({ reset, hasNoImages });
                             <div class="text-xs text-muted-color">{{ formatSize(file.size) }}</div>
                         </div>
                     </div>
+                    <div
+                        class="flex h-full min-h-34 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-surface-200 text-muted-color transition-colors hover:border-primary-400 dark:border-surface-700"
+                        @click="openFileDialog"
+                    >
+            <Plus />
+            <span class="text-xs">Add more</span>
+        </div>
                 </div>
             </template>
 
             <template #empty>
-                <div class="rounded-xl border-2 border-dashed border-surface-200 p-12 text-center dark:border-surface-700">
-                    <p class="m-0! text-muted-color!">Drag and drop images here, or click "Add Images" to get started.</p>
+                <div 
+                    class="cursor-pointer rounded-xl border-2 border-dashed border-surface-200 p-12 py-24 text-center transition-colors hover:border-primary-400 dark:border-surface-700"
+                    @click="openFileDialog"
+                >
+                    <p class="m-0! text-muted-color!">Drag and drop images here, or click to browse.</p>
                 </div>
             </template>
         </FileUpload>

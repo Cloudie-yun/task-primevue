@@ -15,6 +15,13 @@ class ProductVariant extends Model
         'stock',
     ];
 
+    protected function casts(): array
+    {
+        return [
+            'additional_price' => 'decimal:2',
+            'stock' => 'integer',
+        ];
+    }
 
     public function product(): BelongsTo
     {

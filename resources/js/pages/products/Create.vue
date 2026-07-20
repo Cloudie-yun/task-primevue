@@ -26,7 +26,7 @@ defineProps<{
     <div class="mx-auto w-full max-w-4xl space-y-6 px-6 py-10">
         <Heading
             variant="small"
-            title="Create Product"
+            title="Create New Product"
             description="Add a new product to your catalog"
         />
 

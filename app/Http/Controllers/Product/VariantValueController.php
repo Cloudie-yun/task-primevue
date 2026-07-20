@@ -26,7 +26,8 @@ class VariantValueController extends Controller
 
     public function destroy(VariantValue $variantValue)
     {
-        $variants = $value->productVariants()->get(); // however that relation is named
+        //Todo: Fix
+        $variants = $value->productVariants()->get();
 
         if ($variants->isNotEmpty() && !$request->boolean('force')) {
             return back()->withErrors([
