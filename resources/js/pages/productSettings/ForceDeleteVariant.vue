@@ -43,7 +43,7 @@ watch(visible, (isVisible) => {
                         <div class="flex w-full items-center justify-between">
                             <span>{{ value.value }}</span>
 
-                            <Tag severity="danger">
+                            <Tag severity="danger" class="mr-3">
                                 {{ value.variant_count }} variants
                             </Tag>
                         </div>

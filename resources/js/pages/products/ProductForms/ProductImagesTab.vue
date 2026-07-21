@@ -221,13 +221,6 @@ defineExpose({ reset, hasNoImages });
             }"
             @select="handleSelect"
         >
-            <!-- <template #header="{ chooseCallback }">
-                <Button type="button" severity="secondary" variant="outlined" size="small" @click="chooseCallback()">
-                    <Plus />
-                    Add Images
-                </Button>
-            </template> -->
-
             <template #content="{ files }">
                 <div v-if="files?.length > 0" class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
                     <div

@@ -8,7 +8,9 @@ use App\Http\Requests\Product\StoreProductRequest;
 use App\Http\Requests\Product\UpdateProductRequest;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\VariantType;
+use App\Models\VariantValue;
 use App\Services\ProductVariantGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +46,7 @@ class ProductController extends Controller
     public function store(StoreProductRequest $request)
     {
         $product = DB::transaction(function () use ($request) {
-            $product = Product::create($request->safe()->except(['images', 'selections']));
+            $product = Product::create($request->safe()->except(['images', 'selections', 'variants', 'deleted_variant_ids']));
 
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $index => $image) {
@@ -58,6 +60,8 @@ class ProductController extends Controller
             if ($request->filled('selections')) {
                 $this->generator->generate($product, $request->validated('selections'));
             }
+
+            $this->syncVariants($product, $request->input('variants', []));
 
             return $product;
         });
@@ -74,10 +78,18 @@ class ProductController extends Controller
         ]);
     }
 
+    public function variants(Product $product)
+    {
+        return Inertia::render('products/VariantsPage', [
+            'product' => $product->load(['category', 'media', 'variants.values.type']),
+            'variantTypes' => VariantType::with('values')->orderBy('name')->get(),
+        ]);
+    }
+
     public function update(UpdateProductRequest $request, Product $product)
     {
         DB::transaction(function () use ($request, $product) {
-            $product->update($request->safe()->except(['images', 'deleted_image_ids']));
+            $product->update($request->safe()->except(['images', 'deleted_image_ids', 'variants', 'deleted_variant_ids']));
 
             if ($request->filled('deleted_image_ids')) {
                 $product->media()
@@ -98,9 +110,79 @@ class ProductController extends Controller
                         ->toMediaCollection('images');
                 }
             }
+            // if ($request->filled('selections')) {
+            //     $this->generator->generate($product, $request->validated('selections'));
+            // }
+
+            $this->syncVariants($product, $request->input('variants', []), $request->input('deleted_variant_ids', []));
         });
 
         return back()->with('success', 'Product updated.');
+    }
+
+    protected function syncVariants(Product $product, array $workingVariants, array $deletedVariantIds = []): void
+    {
+        if ($deletedVariantIds) {
+            $product->variants()
+                ->whereIn('id', array_map('intval', $deletedVariantIds))
+                ->delete();
+        }
+
+        foreach ($workingVariants as $variantData) {
+            $variantValues = collect($variantData['values'] ?? [])
+                ->map(fn ($value) => (int) $value['id'])
+                ->filter()
+                ->values()
+                ->all();
+
+            if (! $variantValues) {
+                continue;
+            }
+
+            $variant = null;
+            if (! empty($variantData['id'])) {
+                $variant = $product->variants()->find((int) $variantData['id']);
+            }
+
+            if (! $variant) {
+                $variant = $product->variants()->create([
+                    'sku' => $this->resolveVariantSku($product, $variantData['sku'] ?? '', $variantValues),
+                    'additional_price' => (float) ($variantData['additional_price'] ?? 0),
+                    'stock' => (int) ($variantData['stock'] ?? 0),
+                ]);
+            } else {
+                $variant->update([
+                    'sku' => $this->resolveVariantSku($product, $variantData['sku'] ?? $variant->sku, $variantValues, $variant),
+                    'additional_price' => (float) ($variantData['additional_price'] ?? $variant->additional_price),
+                    'stock' => (int) ($variantData['stock'] ?? $variant->stock),
+                ]);
+            }
+
+            $variant->values()->sync($variantValues);
+        }
+    }
+
+    protected function resolveVariantSku(Product $product, string $sku, array $variantValues, ?ProductVariant $existingVariant = null): string
+    {
+        $candidate = trim($sku);
+
+        if ($candidate === '') {
+            $candidate = $this->generator->generateSkuForValues($product, $variantValues);
+        }
+
+        if ($existingVariant && $existingVariant->sku === $candidate) {
+            return $candidate;
+        }
+
+        $baseCandidate = $candidate;
+        $suffix = 1;
+
+        while (ProductVariant::where('sku', $candidate)->where('id', '!=', $existingVariant?->id ?? 0)->exists()) {
+            $candidate = "{$baseCandidate}-{$suffix}";
+            $suffix++;
+        }
+
+        return $candidate;
     }
 
     public function destroy(Product $product)

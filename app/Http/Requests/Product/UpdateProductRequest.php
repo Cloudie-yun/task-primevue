@@ -36,6 +36,17 @@ class UpdateProductRequest extends FormRequest
                         ->where('model_type', \App\Models\Product::class);
                 }),
             ],
+
+            'variants' => ['array'],
+            'variants.*.id' => ['nullable', 'integer', 'exists:product_variants,id'],
+            'variants.*.sku' => ['nullable', 'string', 'max:255'],
+            'variants.*.additional_price' => ['required', 'numeric'],
+            'variants.*.stock' => ['required', 'integer', 'min:0'],
+            'variants.*.values' => ['required', 'array', 'min:1'],
+            'variants.*.values.*.id' => ['required', 'exists:variant_values,id'],
+
+            'deleted_variant_ids' => ['array'],
+            'deleted_variant_ids.*' => ['integer', 'exists:product_variants,id'],
         ];
     }
     

@@ -15,7 +15,7 @@ const categoryId = defineModel<number | null>('categoryId', { required: true });
 const description = defineModel<string>('description', { required: true });
 const price = defineModel<number | null>('price', { required: true });
 
-const selectedCategory = ref<Category | null>(
+const selectedCategory = ref<Category | string | null>(
     props.categories.find((category) => category.id === categoryId.value) ?? null,
 );
 
@@ -43,11 +43,11 @@ const isCategoryUnmatched = computed(() => {
 });
 
 watch(selectedCategory, (category) => {
-    categoryId.value = category?.id ?? null;
+    categoryId.value = typeof category === 'object' && category !== null ? category.id : null;
 });
 
 watch(categoryId, (id) => {
-    if (selectedCategory.value?.id !== id) {
+    if (typeof selectedCategory.value !== 'string' && selectedCategory.value?.id !== id) {
         selectedCategory.value = props.categories.find((category) => category.id === id) ?? null;
     }
 });
@@ -130,7 +130,7 @@ function handleCategoryCreated() {
             </FloatLabel>
             <Message v-if="isCategoryUnmatched" severity="warn" size="small" variant="simple">
                 "{{ selectedCategory }}" isn't a category yet.
-                <Button text size="small" class="p-0 underline" @click="openCreateCategoryDialog">Create it</Button>
+                <Button text size="small" class="p-0 underline" severity="warn" @click="openCreateCategoryDialog">Create it</Button>
             </Message>
             <Message v-if="errors.category_id" severity="error" size="small" variant="simple">
                 {{ errors.category_id }}

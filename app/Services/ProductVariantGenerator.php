@@ -55,6 +55,17 @@ class ProductVariantGenerator
         return $created;
     }
 
+    public function generateSkuForValues(Product $product, array $variantValueIds): string
+    {
+        $values = VariantValue::query()
+            ->whereIn('id', $variantValueIds)
+            ->orderBy('variant_type_id')
+            ->orderBy('id')
+            ->get();
+
+        return $this->generateSku($product, $values);
+    }
+
     private function generateSku(Product $product, $values): string
     {
         // make the base value to collect from product name, but just use each first letter of the words

@@ -28,13 +28,24 @@ class StoreProductRequest extends FormRequest
             ],
             'description' => ['required', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
+
             'status' => ['required', Rule::enum(ProductStatus::class)],
             'images' => ['required', 'array', 'min:1'],
             'images.*' => ['file', 'mimes:jpg,jpeg,png,gif,webp,avif', 'max:5120'],
 
-            'selections' => ['nullable', 'array'],
-            'selections.*' => ['array', 'min:1'],
-            'selections.*.*' => ['integer', 'exists:variant_values,id'],
+            'selections' => ['required', 'array','min:1'],
+            'selections.*' => ['required','array', 'min:1'],
+            'selections.*.*' => ['required','integer', 'exists:variant_values,id'],
+
+            // 'sku' => [
+            //     'required',
+            //     'string',
+            //     'max:255',
+            //     Rule::unique('product_variants', 'sku')->ignore($this->route('variant')),
+            // ],
+            
+            // 'additional_price' => ['required', 'numeric'],
+            // 'stock' => ['required', 'integer', 'min:0'],
         ];
     }
 

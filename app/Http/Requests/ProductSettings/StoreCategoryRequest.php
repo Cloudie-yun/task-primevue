@@ -22,7 +22,7 @@ class StoreCategoryRequest extends FormRequest
                 'required', 
                 'string', 
                 'max:255', 
-                Rule::unique('categories', 'name')->ignore($this->route('category')),
+                Rule::unique('categories', 'name')->where(fn ($query) => $query->whereNull('deleted_at')),
             ],
             'description' => ['nullable', 'string'],
             'is_active' => ['sometimes', 'boolean'],

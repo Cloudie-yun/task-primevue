@@ -49,6 +49,8 @@ watch(visible, (isVisible) => {
     if (!isVisible) {
         newValue.value = '';
     } else {
+        saveError.value = '';
+        blockedValues.value = [];
         snapshotFromType(props.type); // reset to a clean slate every time the dialog opens
     }
 });
@@ -276,7 +278,7 @@ function confirmForceDelete() {
                     </InputGroupAddon>
                 </InputGroup>
             </div>
-            <Message v-if="saveError" severity="error" variant="outlined" closable>
+            <Message v-if="saveError" severity="error" variant="text" closable>
                 <div class="flex flex-col gap-1">
                     <span>{{ saveError }}</span>
                     <Button
@@ -284,6 +286,7 @@ function confirmForceDelete() {
                         label="View affected product variants"
                         text
                         size="small"
+                        severity="danger"
                         class="self-start p-0 underline"
                         @click="forceDialogVisible = true"
                     />

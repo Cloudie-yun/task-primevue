@@ -27,7 +27,7 @@ Route::middleware(['auth', 'verified'])
             ->name('categories.update');
         Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])
             ->name('categories.destroy');
-
+        
         //Variant Type CRUD
         Route::get('/variants', [VariantTypeController::class, 'index'])
             ->name('variants');
@@ -51,6 +51,7 @@ Route::middleware(['auth', 'verified'])
         Route::get('/{product}/edit', [ProductController::class, 'edit'])->name('edit');
         Route::patch('/{product}', [ProductController::class, 'update'])->name('update');
         Route::delete('/{product}', [ProductController::class, 'destroy'])->name('destroy');
+        Route::get('/{product}/variants', [ProductController::class, 'variants'])->name('variants.index');
 
         Route::delete('/{product}/images/{media}', [ProductImageController::class, 'destroy'])->name('images.destroy')->scopeBindings();
 

@@ -9,6 +9,7 @@ import type { Category, VariantType } from '@/types/product-settings';
 import { productSchema } from '@/validation/product';
 import BasicDetailsTab from './BasicDetailsTab.vue';
 import ProductImagesTab from './ProductImagesTab.vue';
+import type { WorkingVariant } from './ProductVariantTable.vue';
 import ProductVariantsTab from './ProductVariantsTab.vue';
 
 const props = defineProps<{ product?: Product | null; categories: Category[]; variantTypes: VariantType[] }>();
@@ -28,6 +29,8 @@ const form = useForm({
     images: [] as File[],
     deleted_image_ids: [] as number[],
     selections: {} as Record<number, number[]>,
+    variants: [] as WorkingVariant[],
+    deleted_variant_ids: [] as number[],
 });
 // Active Tab Watching
 watch(() => props.product?.id, () => {
@@ -45,6 +48,8 @@ const FIELD_TAB_MAP: Record<string, string> = {
     images: '1',
     deleted_image_ids: '1',
     selections: '2',
+    variants: '2',
+    deleted_variant_ids: '2',
 };
 
 function jumpToFirstErrorTab(errors: Record<string, string>) {
@@ -157,7 +162,13 @@ function archive() {
                 />
             </TabPanel>
             <TabPanel value="2">
-                <ProductVariantsTab v-model:selections="form.selections" :product="product" :variant-types="variantTypes" />
+                <ProductVariantsTab
+                    v-model:selections="form.selections"
+                    v-model:variants="form.variants"
+                    v-model:deleted-variant-ids="form.deleted_variant_ids"
+                    :product="product"
+                    :variant-types="variantTypes"
+                />
             </TabPanel>
         </TabPanels>
     </Tabs>

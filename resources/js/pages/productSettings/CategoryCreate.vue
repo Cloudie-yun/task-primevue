@@ -73,7 +73,7 @@ function handleSubmit({ valid, values }: CreateDialogSubmitEvent) {
         <template #default="{ form }">
             <div class="grid gap-1.5">
                 <FloatLabel variant="on">
-                    <InputText id="name" name="name" fluid autocomplete="off" />
+                    <InputText id="name" name="name" fluid autocomplete="off" :invalid="form.name?.invalid || !!serverErrors.name"/>
                     <label for="name">Category name</label>
                 </FloatLabel>
                 <Message v-if="form.name?.invalid" severity="error" size="small" variant="simple">
