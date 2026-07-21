@@ -109,7 +109,7 @@ function handleDeleted() {
             stripedRows 
             removableSort 
             scrollable 
-            scrollHeight="400px"  
+            scrollHeight="500px"  
             class="w-full"
             @row-edit-save="onRowEditSave"
         >

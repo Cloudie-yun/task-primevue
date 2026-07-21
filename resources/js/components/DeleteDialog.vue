@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ExclamationTriangle } from '@primeicons/vue';
+import { ExclamationTriangle, ExclamationCircle } from '@primeicons/vue';
 
 const props = withDefaults(
     defineProps<{
@@ -7,6 +7,7 @@ const props = withDefaults(
         header?: string;
         dialogStyle?: Record<string, string>;
         deleteLabel?: string;
+        error?: string;
     }>(),
     {
         processing: false,
@@ -24,18 +25,29 @@ const emit = defineEmits<{
 
 <template>
     <Dialog v-model:visible="visible" modal :header="props.header" :style="props.dialogStyle">
-        <div class="flex items-start gap-3">
+        <div class="flex items-start gap-3 mb-5">
             <ExclamationTriangle :size="32" class="text-red-500" />
             <div class="text-sm text-muted-foreground">
                 <slot />
             </div>
         </div>
+        <Message
+            v-if="props.error"
+            severity="error"
+            variant="text"
+            closable
+        >
+            <template #icon>
+                <ExclamationCircle :size="24"  />
+            </template>
 
+            {{ props.error }}
+        </Message>
         <template #footer>
             <Button
                 label="Cancel"
                 severity="secondary"
-                variant="text"
+                variant="outlined"
                 :disabled="props.processing"
                 @click="visible = false"
             />

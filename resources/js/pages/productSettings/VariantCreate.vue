@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
+import draggable from 'vuedraggable';
 import { Plus, Times } from '@primeicons/vue';
+import { ArrowDownAZ, ArrowUpAZ } from '@lucide/vue';
 import { zodResolver } from '@primevue/forms/resolvers/zod';
 import { useToast } from 'primevue/usetoast';
-import { ref, watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
 import { z } from 'zod';
 import VariantTypeController from '@/actions/App/Http/Controllers/Product/VariantTypeController';
 import CreateDialogForm, { type CreateDialogSubmitEvent } from '@/components/CreateDialogForm.vue';
@@ -11,18 +13,13 @@ import Label from '@/components/ui/label/Label.vue';
 
 const visible = defineModel<boolean>('visible', { default: false });
 
-const emit = defineEmits<{
-    created: [];
-}>();
+const emit = defineEmits<{ created: [] }>();
 
 const toast = useToast();
 const MAX_VALUES = 30;
 
 const schema = z.object({
-    name: z
-        .string()
-        .min(1, 'Variant type name is required')
-        .max(255, 'Name must be 255 characters or fewer'),
+    name: z.string().min(1, 'Variant type name is required').max(255, 'Name must be 255 characters or fewer'),
 });
 
 const resolver = zodResolver(schema);
@@ -32,32 +29,45 @@ const newValue = ref('');
 const valuesError = ref('');
 const serverErrors = ref<Record<string, string>>({});
 
+const editingIndex = ref<number | null>(null);
+const editingDraft = ref('');
+const editInputRefs = ref<Record<number, HTMLInputElement | null>>({});
+
 watch(visible, (isVisible) => {
     if (isVisible) {
         values.value = [];
         newValue.value = '';
         valuesError.value = '';
         serverErrors.value = {};
+        editingIndex.value = null;
     }
 });
 
+const sortDirection = ref<'asc' | 'desc'>('asc');
+
+function sortAlphabetically() {
+    const sortList = values.value;
+
+    sortList.sort((a, b) => {
+        const result = a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+        return sortDirection.value === 'asc' ? result : -result;
+    });
+
+    sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+}
+
 function addValue() {
     const trimmed = newValue.value.trim();
-
-    if (!trimmed) {
-        return;
-    }
+    if (!trimmed) return;
 
     if (trimmed.length > 255) {
         valuesError.value = 'Each value must be 255 characters or fewer';
         return;
     }
-
     if (values.value.length >= MAX_VALUES) {
         valuesError.value = `You can add up to ${MAX_VALUES} values`;
         return;
     }
-
     if (values.value.some((value) => value.toLowerCase() === trimmed.toLowerCase())) {
         valuesError.value = 'That value has already been added';
         return;
@@ -69,7 +79,41 @@ function addValue() {
 }
 
 function removeValue(index: number) {
+    if (editingIndex.value === index) editingIndex.value = null;
     values.value.splice(index, 1);
+}
+
+function startEditing(index: number) {
+    editingIndex.value = index;
+    editingDraft.value = values.value[index];
+    nextTick(() => editInputRefs.value[index]?.focus());
+}
+
+function commitEdit(index: number) {
+    const trimmed = editingDraft.value.trim();
+
+    if (!trimmed) {
+        // empty edit just removes the value rather than leaving a blank entry
+        removeValue(index);
+        return;
+    }
+
+    const isDuplicateElsewhere = values.value.some(
+        (v, i) => i !== index && v.toLowerCase() === trimmed.toLowerCase(),
+    );
+
+    if (isDuplicateElsewhere) {
+        toast.add({ severity: 'warn', summary: 'That value already exists', life: 3000 });
+        editingDraft.value = values.value[index]; // revert draft, keep editing open so they can fix it
+        return;
+    }
+
+    values.value[index] = trimmed;
+    editingIndex.value = null;
+}
+
+function cancelEdit() {
+    editingIndex.value = null;
 }
 
 function handleSubmit({ valid, values: formValues }: CreateDialogSubmitEvent) {
@@ -79,10 +123,7 @@ function handleSubmit({ valid, values: formValues }: CreateDialogSubmitEvent) {
         valuesError.value = 'Add at least one value';
         return;
     }
-
-    if (!valid) {
-        return;
-    }
+    if (!valid) return;
 
     processing.value = true;
 
@@ -98,19 +139,14 @@ function handleSubmit({ valid, values: formValues }: CreateDialogSubmitEvent) {
             },
             onError: (errors) => {
                 serverErrors.value = errors;
-
                 const firstErrorKey = Object.keys(errors)[0];
                 const detail = firstErrorKey ? errors[firstErrorKey] : 'Please check the form and try again.';
-
                 toast.add({ severity: 'error', summary: 'Creation failed', detail, life: 5000 });
 
                 const valuesFieldError = Object.entries(errors).find(
                     ([key]) => key === 'values' || key.startsWith('values.'),
                 );
-
-                if (valuesFieldError) {
-                    valuesError.value = valuesFieldError[1];
-                }
+                if (valuesFieldError) valuesError.value = valuesFieldError[1];
             },
             onFinish: () => {
                 processing.value = false;
@@ -150,11 +186,7 @@ function handleSubmit({ valid, values: formValues }: CreateDialogSubmitEvent) {
                     <Label class="text-zinc-400 text-xs justify-end">Type a value and press Enter</Label>
                     <InputGroup>
                         <FloatLabel variant="on">
-                            <InputText
-                                v-model="newValue"
-                                @keydown.enter.prevent="addValue"
-                                :invalid="!!valuesError"
-                            />
+                            <InputText v-model="newValue" @keydown.enter.prevent="addValue" :invalid="!!valuesError" />
                             <label>Values</label>
                         </FloatLabel>
                         <InputGroupAddon @click="addValue">
@@ -162,21 +194,61 @@ function handleSubmit({ valid, values: formValues }: CreateDialogSubmitEvent) {
                         </InputGroupAddon>
                     </InputGroup>
                 </div>
-                
-                <div v-if="values.length" class="flex flex-wrap gap-2 pt-1">
-                    <Tag v-for="(value, index) in values" :key="value" severity="secondary">
-                        <span class="flex items-center gap-1.5">
-                            {{ value }}
-                            <Times class="cursor-pointer text-xs" @click="removeValue(index)" />
-                        </span>
-                    </Tag>
-                </div>
+
+                <template v-if="values.length">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-muted-foreground">{{ values.length }} / {{ MAX_VALUES }} values added</span>
+                        <div class="flex items-center justify-center gap-2">
+                            <Button 
+                                text 
+                                size="small" 
+                                @click="sortAlphabetically" 
+                                v-tooltip="sortDirection === 'asc' ? 'Sort A-Z' : 'Sort Z-A'"
+                            >
+                                <ArrowUpAZ v-if="sortDirection === 'asc'" class="size-4" />
+                                <ArrowDownAZ v-else class="size-4" />                             
+                            </Button>
+                        </div>
+                    </div>
+
+                    <draggable
+                        v-model="values"
+                        :item-key="(el: string) => el"
+                        class="space-y-1"
+                        ghost-class="opacity-40"
+                        handle=".drag-handle"
+                    >
+                        <template #item="{ element, index }">
+                            <div class="flex w-full min-w-0 items-center gap-2 rounded-md border border-surface-200 px-2 py-1.5 dark:border-surface-700">
+                                <span class="drag-handle shrink-0 cursor-grab select-none text-muted-color">⠿</span>
+                                <span class="w-4 shrink-0 text-right text-sm tabular-nums opacity-70">{{ index }}</span>
+
+                                <InputText
+                                    v-if="editingIndex === index"
+                                    :ref="(el: any) => (editInputRefs[index] = el?.$el ?? el)"
+                                    v-model="editingDraft"
+                                    size="small"
+                                    class="flex-1"
+                                    @blur="commitEdit(index)"
+                                    @keydown.enter.prevent="commitEdit(index)"
+                                    @keydown.esc.prevent="cancelEdit"
+                                />
+                                <span v-else class="flex-1 cursor-text truncate text-sm" @click="startEditing(index)">
+                                    {{ element }}
+                                </span>
+
+                                <Times class="shrink-0 cursor-pointer text-xs" @click="removeValue(index)" />
+                            </div>
+                        </template>
+                    </draggable>
+                </template>
+                    <div class="flex justify-end">
+                        <span class="text-xs text-muted-color">Drag the handle to reorder · click a value to edit</span>
+                    </div>
+
                 <Message v-if="valuesError" severity="error" size="small" variant="simple">
                     {{ valuesError }}
                 </Message>
-                <span v-else class="text-xs text-muted-foreground">
-                    {{ values.length }} / {{ MAX_VALUES }} values added
-                </span>
             </div>
         </template>
     </CreateDialogForm>

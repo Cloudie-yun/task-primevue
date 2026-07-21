@@ -11,6 +11,7 @@ export interface VariantValue {
     id: number;
     variant_type_id: number;
     value: string;
+    sort_order: number;
     created_at: string;
     updated_at: string;
 }

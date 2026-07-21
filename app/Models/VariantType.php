@@ -13,6 +13,6 @@ class VariantType extends Model
 
     public function values(): HasMany
     {
-        return $this->hasMany(VariantValue::class);
+        return $this->hasMany(VariantValue::class)->orderBy('sort_order');
     }
 }

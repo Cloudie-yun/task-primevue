@@ -9,6 +9,7 @@ import { initializeFlashToast } from '@/lib/flashToast';
 import PrimeVue from 'primevue/config';
 import ConfirmationService from 'primevue/confirmationservice';
 import ToastService from 'primevue/toastservice';
+import Tooltip from 'primevue/tooltip';
 import Aura from '@primeuix/themes/aura';
 import Noir from '@/theme';
 
@@ -42,6 +43,7 @@ createInertiaApp({
                 // unstyled: true,
                 license: primeUIKey,
             })
+            .directive('tooltip', Tooltip)
             .use(ConfirmationService)
             .use(ToastService);
         if (el) {

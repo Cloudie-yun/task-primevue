@@ -5,7 +5,7 @@ import Heading from '@/components/Heading.vue';
 import { variants as variantIndex } from '@/routes/product-settings/index';
 import VariantCreate from './VariantCreate.vue';
 import VariantTypeDelete from './VariantTypeDelete.vue';
-import VariantEdit from '@/components/VariantEdit.vue';
+import VariantEdit from './VariantEdit.vue';
 import type { VariantType } from '@/types/product-settings';
 import { Plus, Trash, Pencil } from '@primeicons/vue';
 
@@ -85,6 +85,7 @@ function handleDeleted() {
             :value="variantTypes"
             dataKey="id"
             tableStyle="min-width: 50rem"
+            scrollHeight="500px"  
             stripedRows
         >
             <Column field="name" header="Type" headerStyle="width: 20%">
