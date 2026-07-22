@@ -3,10 +3,12 @@
 import { Trash, Plus, PlusCircle, MinusCircle } from '@primeicons/vue';
 import { computed, ref, watch } from 'vue';
 import type { VariantType } from '@/types/product-settings';
+import type { WorkingVariant } from './ProductVariantTable.vue'; 
 import CreateVariantTypeDialog from '@/pages/productSettings/VariantCreate.vue';
 import EditVariantTypeDialog from '@/pages/productSettings/VariantEdit.vue';
-const props = defineProps<{ variantTypes: VariantType[] }>();
-const emit = defineEmits<{ typesUpdated: [] }>(); // parent can router.reload(['variantTypes']) or splice locally
+
+const props = defineProps<{ variantTypes: VariantType[]; variants: WorkingVariant[] }>();
+const emit = defineEmits<{ typesUpdated: [] }>();
 const selections = defineModel<Record<number, number[]>>('selections', { required: true });
 
 const VALUE_LABEL_CUTOFF = 5;
@@ -88,6 +90,71 @@ watch(
         pendingTypeRow.value = null;
     },
 );
+
+let hasSeeded = false;
+
+watch(
+    () => props.variants,
+    (currentVariants) => {
+        if (hasSeeded || currentVariants.length === 0) return;
+        hasSeeded = true;
+
+        const grouped = new Map<number, Set<number>>();
+        currentVariants.forEach((variant) => {
+            if (variant.markedForDelete) return;
+            variant.values.forEach((val) => {
+                if (!grouped.has(val.variant_type_id)) grouped.set(val.variant_type_id, new Set());
+                grouped.get(val.variant_type_id)!.add(val.id);
+            });
+        });
+
+        if (grouped.size === 0) return;
+
+        rows.value = Array.from(grouped.entries()).map(([typeId, valueIds]) => ({
+            key: crypto.randomUUID(),
+            typeId,
+            valueIds: Array.from(valueIds),
+        }));
+    },
+    { immediate: true },
+);
+
+//Show used value IDs
+const usedValueIds = computed(() => {
+    const ids = new Set<number>();
+    props.variants.forEach((variant) => {
+        if (variant.markedForDelete) return;
+        variant.values.forEach((v) => ids.add(v.id));
+    });
+    return ids;
+});
+
+const existingCombinationKeys = computed(() => {
+    const keys = new Set<string>();
+    props.variants.forEach((variant) => {
+        if (variant.markedForDelete) return;
+        const key = variant.values.map((v) => v.id).sort((a, b) => a - b).join(',');
+        keys.add(key);
+    });
+    return keys;
+});
+
+function cartesianForPreview(): number[][] {
+    const groups = Object.values(selections.value).filter((ids) => ids.length);
+    if (!groups.length) return [];
+    return groups.reduce<number[][]>((combos, ids) => combos.flatMap((combo) => ids.map((id) => [...combo, id])), [[]]);
+}
+
+const generationPreview = computed(() => {
+    const combos = cartesianForPreview();
+    if (!combos.length) return null;
+
+    const newCount = combos.filter((c) => !existingCombinationKeys.value.has([...c].sort((a, b) => a - b).join(','))).length;
+
+    return { total: combos.length, new: newCount, existing: combos.length - newCount };
+});
+
+defineExpose({ generationPreview });
 
 //Rows
 function makeRow(): Row {
@@ -204,6 +271,16 @@ const canAddRow = computed(() => rows.value.length < props.variantTypes.length);
                                 class="w-full"
                                 @filter="onFilterChange(row, $event)"
                             >
+                                <template #option="{ option }">
+                                    <div class="flex w-full items-center justify-between">
+                                        <span>{{ option.value }}</span>
+                                        <span
+                                            v-if="usedValueIds.has(Number(option.id))"
+                                            class="ml-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
+                                            v-tooltip="'Used in an existing variant'"
+                                        />
+                                    </div>
+                                </template>
                                 <template #value>
                                     <span v-if="!row.valueIds.length" class="text-muted-foreground">Select values</span>
                                     <span v-else class="truncate">{{ selectedValueLabel(row) }}</span>

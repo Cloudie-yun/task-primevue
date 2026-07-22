@@ -9,7 +9,7 @@ import type { Category, VariantType } from '@/types/product-settings';
 import { productSchema } from '@/validation/product';
 import BasicDetailsTab from './BasicDetailsTab.vue';
 import ProductImagesTab from './ProductImagesTab.vue';
-import type { WorkingVariant } from './ProductVariantTable.vue';
+import type { WorkingVariant } from './ProductVariants/ProductVariantTable.vue';
 import ProductVariantsTab from './ProductVariantsTab.vue';
 
 const props = defineProps<{ product?: Product | null; categories: Category[]; variantTypes: VariantType[] }>();

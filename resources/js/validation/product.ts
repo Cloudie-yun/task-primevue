@@ -8,3 +8,13 @@ export const productSchema = z.object({
     description: z.string().min(1, 'Description is required').max(1000,'Description is too long, only 1000 characters allowed'),
     price: z.number({ message: 'Price is required' }).positive('Price must be greater than 0'),
 });
+
+export const variantRowSchema = z.object({
+    additional_price: z
+        .number({ message: 'Enter a valid amount' })
+        .min(0, 'Additional price cannot be negative'),
+    stock: z
+        .number({ message: 'Please enter a valid number' })
+        .int('Stock must be a whole number')
+        .min(0, 'Stock cannot be negative')
+});

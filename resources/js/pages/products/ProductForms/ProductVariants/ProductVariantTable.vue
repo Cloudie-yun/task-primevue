@@ -2,6 +2,7 @@
 import { Trash, Undo } from '@primeicons/vue';
 import { computed, nextTick, reactive, ref } from 'vue';
 import type { VariantType } from '@/types/product-settings';
+import { variantRowSchema } from '@/validation/product';
 
 export type WorkingVariant = {
     id?: number;
@@ -24,21 +25,18 @@ const attemptedSubmit = ref(false); // set true once the parent tries to save, s
 // --- Validation -----------------------------------------------------------
 
 function fieldErrors(variant: WorkingVariant): { additional_price?: string; stock?: string } {
+    const result = variantRowSchema.safeParse({
+        additional_price: variant.additional_price,
+        stock: variant.stock,
+    });
+
+    if (result.success) return {};
+
     const errors: { additional_price?: string; stock?: string } = {};
-
-    if (variant.additional_price === null || Number.isNaN(Number(variant.additional_price))) {
-        errors.additional_price = 'Enter a valid amount';
+    for (const issue of result.error.issues) {
+        const field = issue.path[0] as 'additional_price' | 'stock';
+        if (!errors[field]) errors[field] = issue.message; // first error per field only
     }
-
-    if (
-        variant.stock === null ||
-        !Number.isFinite(Number(variant.stock)) ||
-        !Number.isInteger(Number(variant.stock)) ||
-        Number(variant.stock) < 0
-    ) {
-        errors.stock = 'Enter a whole number, 0 or more';
-    }
-
     return errors;
 }
 
@@ -53,7 +51,7 @@ const invalidKeys = computed(() => {
 
 function rowClass(data: WorkingVariant) {
     if (data.markedForDelete) return 'opacity-50';
-    if (attemptedSubmit.value && invalidKeys.value.has(data._key)) return 'bg-red-50 dark:bg-red-950/30';
+    if (attemptedSubmit.value && invalidKeys.value.has(data._key)) return 'bg-red-50! dark:bg-red-950/30!';
     return '';
 }
 

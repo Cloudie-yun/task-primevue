@@ -3,7 +3,7 @@ import { useToast } from 'primevue/usetoast';
 import { computed, ref, watch } from 'vue';
 import type { Product } from '@/types/product';
 import type { VariantType } from '@/types/product-settings';
-import ProductVariantTable, { type WorkingVariant } from './ProductVariantTable.vue';
+import ProductVariantTable, { type WorkingVariant } from './ProductVariants/ProductVariantTable.vue';
 import ProductVariantTypeSelector from './ProductVariants/ProductVariantTypeSelector.vue';
 import { buildSku } from '@/lib/sku';
 
@@ -12,9 +12,10 @@ const props = defineProps<{ product?: Product | null; variantTypes: VariantType[
 const selections = defineModel<Record<number, number[]>>('selections', { required: true });
 const variants = defineModel<WorkingVariant[]>('variants', { required: true });
 const deletedVariantIds = defineModel<number[]>('deletedVariantIds', { default: () => [] });
-
+const variantSelector = ref<{ generationPreview: { total: number; new: number; existing: number } | null}>();
 const toast = useToast();
 const hasSelections = computed(() => Object.keys(selections.value).length > 0);
+const hasNoVariants = computed(() => variants.value.filter((v) => !v.markedForDelete).length === 0);
 const tableRef = ref<{ validate: () => boolean }>();
 
 // Seed the working list from persisted variants once per product (e.g. when the form first loads).
@@ -85,22 +86,32 @@ function generateVariants() {
 
 // Delegated to by ProductForm before it submits.
 function validate(): boolean {
+    if (hasNoVariants.value) {
+        return false;
+    }
     return tableRef.value?.validate() ?? true;
 }
 
-defineExpose({ validate });
+defineExpose({ validate, hasNoVariants });
 </script>
 
 <template>
     <div class="space-y-8 py-4">
         <div class="space-y-3">
-            <ProductVariantTypeSelector v-model:selections="selections" :variant-types="variantTypes" />
-
-            <div>
-                <Button label="Generate Variants" :disabled="!hasSelections" @click="generateVariants" />
-                <p class="mt-1 text-xs text-muted-foreground">
-                    Adds rows below for editing. Nothing is saved until the product itself is saved.
-                </p>
+            <ProductVariantTypeSelector ref="variantSelector" v-model:selections="selections" :variant-types="variantTypes" :variants="variants" />
+            <div class="grid justify-end text-right">
+                <div>
+                    <Button label="Generate Variants" :disabled="!hasSelections" @click="generateVariants" />
+                    <p v-if="variantSelector?.generationPreview" class="mt-1 text-xs text-muted-foreground" >
+                        {{ variantSelector.generationPreview.total }}
+                        combination{{ variantSelector.generationPreview.total === 1 ? '' : 's' }}
+                        selected —
+                        {{ variantSelector.generationPreview.new }} new
+                        <span v-if="variantSelector.generationPreview.existing">
+                            · {{ variantSelector.generationPreview.existing }} already exist
+                        </span>
+                    </p>
+                </div>
             </div>
         </div>
 
