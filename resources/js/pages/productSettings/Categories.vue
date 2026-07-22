@@ -111,12 +111,12 @@ function handleDeleted() {
                     <InputText v-model="data[field]" fluid />
                 </template>
             </Column>
-            <Column field="description" header="Description" sortable style="width: 55%" bodyStyle="text-align:left">
+            <Column field="description" header="Description" sortable style="width: 55%" bodyStyle="text-align:left align">
                 <template #body="{ data }">
                     <span class="text-muted-foreground">{{ data.description ?? '-' }}</span>
                 </template>
                 <template #editor="{data, field }">
-                    <Textarea v-model="data[field]" rows="1" fluid autoScroll />
+                    <Textarea v-model="data[field]" rows="1" fluid />
                 </template>
             </Column>
             <Column field="is_active" header="Status" sortable style="width: 10%" bodyStyle="text-align:left">

@@ -19,6 +19,7 @@ export interface VariantValue {
 export interface VariantType {
     id: number;
     name: string;
+    generates_variants: boolean;
     created_at: string;
     updated_at: string;
     values?: VariantValue[]; // present only when eager-loaded via with('values')

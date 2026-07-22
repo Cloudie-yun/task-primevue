@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
 import draggable from 'vuedraggable';
-import { Plus, Times } from '@primeicons/vue';
+import { Plus, Question, QuestionCircle, Times } from '@primeicons/vue';
 import { ArrowDownAZ, ArrowUpAZ } from '@lucide/vue';
 import { zodResolver } from '@primevue/forms/resolvers/zod';
 import { useToast } from 'primevue/usetoast';
@@ -14,12 +14,13 @@ import Label from '@/components/ui/label/Label.vue';
 const visible = defineModel<boolean>('visible', { default: false });
 
 const emit = defineEmits<{ created: [name: string] }>();
-
+const popover = ref();
 const toast = useToast();
 const MAX_VALUES = 30;
 
 const schema = z.object({
     name: z.string().min(1, 'Variant type name is required').max(255, 'Name must be 255 characters or fewer'),
+    generates_variants: z.boolean(),
 });
 
 const resolver = zodResolver(schema);
@@ -129,9 +130,10 @@ function handleSubmit({ valid, values: formValues }: CreateDialogSubmitEvent) {
 
     router.post(
         VariantTypeController.store().url,
-        { name: formValues.name, values: values.value },
+        { name: formValues.name, generates_variants: formValues.generates_variants.value, values: values.value },
         {
             preserveScroll: true,
+
             onSuccess: () => {
                 toast.add({ severity: 'success', summary: 'Variant type created', life: 3000 });
                 visible.value = false;
@@ -154,6 +156,10 @@ function handleSubmit({ valid, values: formValues }: CreateDialogSubmitEvent) {
         },
     );
 }
+
+const toggle = (event: any) =>{
+    popover.value.toggle(event);
+}
 </script>
 
 <template>
@@ -163,7 +169,7 @@ function handleSubmit({ valid, values: formValues }: CreateDialogSubmitEvent) {
         :dialog-style="{ width: '28rem' }"
         form-class="space-y-6 py-6"
         :resolver="resolver"
-        :initial-values="{ name: '' }"
+        :initial-values="{ name: '', generates_variants: false }"
         :processing="processing"
         @submit="handleSubmit"
     >
@@ -180,7 +186,7 @@ function handleSubmit({ valid, values: formValues }: CreateDialogSubmitEvent) {
                     {{ serverErrors.name }}
                 </Message>
             </div>
-
+        
             <div class="grid gap-1.5">
                 <div class="grid">
                     <Label class="text-zinc-400 text-xs justify-end">Type a value and press Enter</Label>
@@ -249,6 +255,44 @@ function handleSubmit({ valid, values: formValues }: CreateDialogSubmitEvent) {
                 <Message v-if="valuesError" severity="error" size="small" variant="simple">
                     {{ valuesError }}
                 </Message>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <Checkbox  name="generates_variants" binary inputId="generates_variants" />
+
+                <label for="generates_variants" class="text-sm font-medium" >
+                    Include this type when generating product variants
+                </label>
+                <Button
+                    variant="text"
+                    rounded
+                    size="small"
+                    class="h-6 w-6 text-muted-foreground"
+                    @click="toggle"
+                >
+                    <QuestionCircle />
+                </Button>           
+
+                <Popover ref="popover" class="max-w-sm">
+                    <div class="space-y-2">
+                        <p class="font-semibold">What happens when this is unchecked?</p>
+
+                        <p class="text-sm text-muted-foreground">
+                            The values of this type are treated as descriptive product tags rather than purchasable variants.
+                        </p>
+
+                        <ul class="text-sm space-y-1 text-muted-foreground" style="list-style-type: circle;">
+                            <li>• No separate SKU is created</li>
+                            <li>• No separate stock quantity is tracked</li>
+                            <li>• No separate price combination is generated</li>
+                            <li>• The values can still be displayed on the product page</li>
+                        </ul>
+
+                        <div class="rounded-md bg-surface-100 p-2 text-xs dark:bg-surface-800">
+                            <strong>Example:</strong> “Material: Cotton” is usually a tag, while “Size” and “Color” are typically variant-generating types.
+                        </div>
+                    </div>
+                </Popover>
             </div>
         </template>
     </CreateDialogForm>

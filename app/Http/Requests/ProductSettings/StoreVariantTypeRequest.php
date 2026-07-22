@@ -24,6 +24,7 @@ class StoreVariantTypeRequest extends FormRequest
                 'max:255', 
                 Rule::unique('variant_types', 'name'),
             ],
+            'generates_variants' => ['sometimes', 'boolean'],
             'values' => ['required', 'array', 'min:1'],
             'values.*' => ['required', 'string', 'max:255', 'distinct'],
         ];

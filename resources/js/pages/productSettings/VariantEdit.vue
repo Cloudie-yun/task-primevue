@@ -6,12 +6,13 @@ import { nextTick, computed, ref, watch } from 'vue';
 import VariantTypeController from '@/actions/App/Http/Controllers/Product/VariantTypeController';
 import ForceDeleteValuesDialog from './ForceDeleteVariant.vue';
 import type { VariantType } from '@/types/product-settings';
-import { Trash, Plus, Undo } from '@primeicons/vue';
+import { Trash, Plus, Undo, QuestionCircle } from '@primeicons/vue';
 import { ArrowDownAZ, ArrowUpAZ } from '@lucide/vue';
 
 const visible = defineModel<boolean>('visible', { default: false });
 const props = defineProps<{ variantType: VariantType | null; prefillValue?: string | null }>();
 const emit = defineEmits<{ updated: [] }>();
+const popover = ref();
 const toast = useToast();
 
 interface WorkingValue {
@@ -28,6 +29,7 @@ interface BlockedValue {
 }
 
 const typeName = ref('');
+const generates_variants = ref(false);
 const values = ref<WorkingValue[]>([]);
 const newValue = ref('');
 const saving = ref(false);
@@ -40,11 +42,16 @@ const forceDialogVisible = ref(false);
 
 function snapshotFromType(t: VariantType | null) {
     typeName.value = t?.name ?? '';
+    generates_variants.value = t?.generates_variants ?? false;
     values.value = (t?.values ?? []).map((v) => ({ id: v.id, value: v.value, markedForDelete: false }));
 
     if (props.prefillValue?.trim()) {
         values.value.push({ id: null, value: props.prefillValue.trim(), markedForDelete: false });
     }
+}
+
+const toggle = (event: any) =>{
+    popover.value.toggle(event);
 }
 
 watch(() => props.variantType, snapshotFromType, { immediate: true });
@@ -75,6 +82,7 @@ function sortAlphabetically() {
 const isDirty = computed(() => {
     if (!props.variantType) return false;
     if (typeName.value.trim() !== props.variantType.name) return true;
+    if (generates_variants.value !== props.variantType.generates_variants) return true;
 
     const original = props.variantType.values ?? [];
     if (values.value.length !== original.length) return true;
@@ -172,7 +180,7 @@ function save(force = false) {
 
     router.patch(
         VariantTypeController.update(props.variantType.id).url,
-        { name: trimmedName, values: payloadValues, force },
+        { name: trimmedName, generates_variants: generates_variants.value, values: payloadValues, force },
         {
             preserveScroll: true,
             onSuccess: () => {
@@ -214,7 +222,8 @@ function confirmForceDelete() {
         header="Edit Variant Type" 
         :style="{ width: '30rem' }" 
         :pt="{
-            content: { class:'max-h-[500px] overflow-y-auto'}
+            content: { class:'max-h-[500px] overflow-y-auto'},
+            footer: { class:'flex-col! justify-between! gap-3!'},
         }"
     >
         <div v-if="variantType" class="space-y-4 py-4">
@@ -307,8 +316,47 @@ function confirmForceDelete() {
             </Message>
         </div>
         <template #footer>
-            <Button label="Discard" severity="secondary" variant="text" :disabled="!isDirty || saving" @click="discard" />
-            <Button label="Save changes" :loading="saving" :disabled="!isDirty" @click="() => save()" />
+            <div class="flex items-center gap-2">
+                <Checkbox v-model="generates_variants" binary inputId="generates_variants" />
+
+                <label for="generates_variants" class="text-sm font-medium" >
+                    Include this type when generating product variants
+                </label>
+                <Button
+                    variant="text"
+                    rounded
+                    size="small"
+                    class="h-6 w-6 text-muted-foreground"
+                    @click="toggle"
+                >
+                    <QuestionCircle />
+                </Button>           
+
+                <Popover ref="popover" class="max-w-sm">
+                    <div class="space-y-2">
+                        <p class="font-semibold">What happens when this is unchecked?</p>
+
+                        <p class="text-sm text-muted-foreground">
+                            The values of this type are treated as descriptive product tags rather than purchasable variants.
+                        </p>
+
+                        <ul class="text-sm space-y-1 text-muted-foreground" style="list-style-type: circle;">
+                            <li>• No separate SKU is created</li>
+                            <li>• No separate stock quantity is tracked</li>
+                            <li>• No separate price combination is generated</li>
+                            <li>• The values can still be displayed on the product page</li>
+                        </ul>
+
+                        <div class="rounded-md bg-surface-100 p-2 text-xs dark:bg-surface-800">
+                            <strong>Example:</strong> “Material: Cotton” is usually a tag, while “Size” and “Color” are typically variant-generating types.
+                        </div>
+                    </div>
+                </Popover>
+            </div>
+            <div class="shrink-0 flex justify-end gap-[--p-dialog-footer-gap] p-[--p-dialog-footer-padding]" >
+                <Button label="Discard" severity="secondary" variant="text" :disabled="!isDirty || saving" @click="discard" />
+                <Button label="Save changes" :loading="saving" :disabled="!isDirty" @click="() => save()" />
+            </div>
         </template>
     </Dialog>
     <ForceDeleteValuesDialog

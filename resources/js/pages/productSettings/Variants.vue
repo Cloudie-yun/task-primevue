@@ -111,7 +111,15 @@ function handleDeleted() {
                     </div>
                 </template>
             </Column>
-
+            <Column header="SKU" headerStyle="width: 15%">
+                <template #body="{ data }">
+                    <Badge
+                        :value="data.generates_variants ? 'Yes' : 'No'"
+                        :severity="data.generates_variants ? 'success' : 'secondary'"
+                        class="p-2! text-sm! px-5!"
+                    />
+                </template>
+            </Column>
             <Column header="" headerStyle="width: 15%" bodyStyle="text-align:center">
                 <template #body="{ data }">
                     <Button severity="secondary" variant="text" rounded @click="toggleEdit(data)">
@@ -132,7 +140,7 @@ function handleDeleted() {
             </template>
         </DataTable>
 
-        <VariantEdit v-model:visible="showEditDialog" :type="selectedType" @changed="handleChanged" />
+        <VariantEdit v-model:visible="showEditDialog" :variant-type="selectedType" @changed="handleChanged" />
         <VariantCreate v-model:visible="showCreateDialog" @created="handleCreated" />
         <VariantTypeDelete v-model:visible="showDeleteDialog" :type="selectedType" @deleted="handleDeleted" />
     </div>

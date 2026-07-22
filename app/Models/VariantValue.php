@@ -26,11 +26,15 @@ class VariantValue extends Model
         return $this->belongsTo(VariantType::class, 'variant_type_id');
     }
 
-
     public function productVariants(): BelongsToMany
     {
         return $this->belongsToMany(ProductVariant::class, 'product_variant_values')
             ->using(ProductVariantValue::class)
             ->withTimestamps();
+    }
+
+    public function products(): BelongsToMany
+    {
+        return $this->belongsToMany(Product::class, 'product_attribute_value')->withTimestamps();
     }
 }

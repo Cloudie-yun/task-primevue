@@ -6,6 +6,7 @@ use App\Enums\ProductStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
@@ -55,6 +56,12 @@ class Product extends Model implements HasMedia
     public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class);
+    }
+
+    // Product Value Pivot
+    public function attributeValues(): BelongsToMany
+    {
+        return $this->belongsToMany(VariantValue::class, 'product_attribute_value')->withTimestamps();
     }
 
     // Spatie image collection

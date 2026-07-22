@@ -22,6 +22,7 @@ class UpdateVariantTypeRequest extends FormRequest
                 'max:255',
                 Rule::unique('variant_types', 'name')->ignore($this->route('variantType')),
             ],
+            'generates_variants' => ['sometimes', 'boolean'],
             'values' => ['required', 'array', 'min:1'],
             'values.*.id' => ['nullable', 'integer', 'exists:variant_values,id'],
             'values.*.value' => ['required', 'string', 'max:255'],

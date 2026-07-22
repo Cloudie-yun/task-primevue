@@ -25,11 +25,14 @@ class VariantTypeController extends Controller
     public function store(StoreVariantTypeRequest $request)
     {
         DB::transaction(function () use ($request) {
-            $type = VariantType::create(['name' => $request->validated('name')]);
+            $type = VariantType::create([
+                'name' => $request->validated('name'),
+                'generates_variants' => $request->boolean('generates_variants'),
+            ]);
 
             $type->values()->createMany(
                 collect($request->validated('values'))
-                    ->values() // reindex in case anything upstream filtered the array
+                    ->values() 
                     ->map(fn ($value, $index) => [
                         'value' => $value,
                         'sort_order' => $index,
@@ -44,7 +47,10 @@ class VariantTypeController extends Controller
     public function update(UpdateVariantTypeRequest $request, VariantType $variantType)
     {
         DB::transaction(function () use ($request, $variantType) {
-            $variantType->update(['name' => $request->validated('name')]);
+            $variantType->update([
+                'name' => $request->validated('name'),
+                'generates_variants' => $request->boolean('generates_variants'),
+            ]);
             $this->valueSyncer->sync($variantType, $request->validated('values'), $request->boolean('force'));
         });
 

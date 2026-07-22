@@ -9,7 +9,10 @@ class VariantType extends Model
 {
     protected $fillable = [
         'name',
+        'generates_variants',
     ];
+
+    protected $casts = ['generates_variants' => 'boolean'];
 
     public function values(): HasMany
     {
