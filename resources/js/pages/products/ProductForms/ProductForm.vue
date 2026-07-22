@@ -16,6 +16,7 @@ const props = defineProps<{ product?: Product | null; categories: Category[]; va
 const toast = useToast();
 const isEditing = computed(() => !!props.product);
 const imageTabRef = ref<{ hasNoImages: boolean; reset: () => void }>();
+const variantsTabRef = ref<{ validate: () => boolean }>();
 const activeTab = ref('0');
 const activeTabKey = computed(() => `productFormActiveTab-${props.product?.id ?? 'new'}`);
 
@@ -32,6 +33,20 @@ const form = useForm({
     variants: [] as WorkingVariant[],
     deleted_variant_ids: [] as number[],
 });
+
+form.transform((data) => ({
+    ...data,
+    variants: data.variants
+        .filter((v) => !v.markedForDelete)
+        .map((v) => ({
+            id: v.id,
+            sku: v.sku,
+            additional_price: v.additional_price,
+            stock: v.stock,
+            values: v.values.map((val) => ({ id: val.id })),
+        })),
+}));
+
 // Active Tab Watching
 watch(() => props.product?.id, () => {
     activeTab.value = props.product ? (localStorage.getItem(activeTabKey.value) ?? '0') : '0';
@@ -111,6 +126,12 @@ function submit(status: 'draft' | 'published') {
         return;
     }
 
+    if (variantsTabRef.value && !variantsTabRef.value.validate()) {
+        activeTab.value = '2';
+        toast.add({ severity: 'error', summary: 'Check Variants', detail: 'Some variant rows need fixing before saving', life: 4000 });
+        return;
+    }
+
     const options = {
         forceFormData: true,
         onError: (errors: Record<string, string>) => {
@@ -161,12 +182,24 @@ function archive() {
                     :errors="form.errors.images"
                 />
             </TabPanel>
-            <TabPanel value="2">
+            <!-- <TabPanel value="2">
                 <ProductVariantsTab
                     v-model:selections="form.selections"
                     v-model:variants="form.variants"
                     v-model:deleted-variant-ids="form.deleted_variant_ids"
                     :product="product"
+                    :product-name="form.name"
+                    :variant-types="variantTypes"
+                />
+            </TabPanel> -->
+            <TabPanel value="2">
+                <ProductVariantsTab
+                    ref="variantsTabRef"
+                    v-model:selections="form.selections"
+                    v-model:variants="form.variants"
+                    v-model:deleted-variant-ids="form.deleted_variant_ids"
+                    :product="product"
+                    :product-name="form.name"
                     :variant-types="variantTypes"
                 />
             </TabPanel>

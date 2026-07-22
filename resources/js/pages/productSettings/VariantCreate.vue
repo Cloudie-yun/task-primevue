@@ -13,7 +13,7 @@ import Label from '@/components/ui/label/Label.vue';
 
 const visible = defineModel<boolean>('visible', { default: false });
 
-const emit = defineEmits<{ created: [] }>();
+const emit = defineEmits<{ created: [name: string] }>();
 
 const toast = useToast();
 const MAX_VALUES = 30;
@@ -135,7 +135,7 @@ function handleSubmit({ valid, values: formValues }: CreateDialogSubmitEvent) {
             onSuccess: () => {
                 toast.add({ severity: 'success', summary: 'Variant type created', life: 3000 });
                 visible.value = false;
-                emit('created');
+                emit('created', formValues.name);
             },
             onError: (errors) => {
                 serverErrors.value = errors;

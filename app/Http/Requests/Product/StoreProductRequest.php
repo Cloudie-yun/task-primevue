@@ -28,24 +28,17 @@ class StoreProductRequest extends FormRequest
             ],
             'description' => ['required', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
-
             'status' => ['required', Rule::enum(ProductStatus::class)],
+
             'images' => ['required', 'array', 'min:1'],
             'images.*' => ['file', 'mimes:jpg,jpeg,png,gif,webp,avif', 'max:5120'],
 
-            'selections' => ['required', 'array','min:1'],
-            'selections.*' => ['required','array', 'min:1'],
-            'selections.*.*' => ['required','integer', 'exists:variant_values,id'],
-
-            // 'sku' => [
-            //     'required',
-            //     'string',
-            //     'max:255',
-            //     Rule::unique('product_variants', 'sku')->ignore($this->route('variant')),
-            // ],
-            
-            // 'additional_price' => ['required', 'numeric'],
-            // 'stock' => ['required', 'integer', 'min:0'],
+            'variants' => ['nullable', 'array'],
+            'variants.*.sku' => ['nullable', 'string', 'max:255', 'distinct', Rule::unique('product_variants', 'sku')],
+            'variants.*.additional_price' => ['required', 'numeric'],
+            'variants.*.stock' => ['required', 'integer', 'min:0'],
+            'variants.*.values' => ['required', 'array', 'min:1'],
+            'variants.*.values.*.id' => ['required', 'exists:variant_values,id'],
         ];
     }
 

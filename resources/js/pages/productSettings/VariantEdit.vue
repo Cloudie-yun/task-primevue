@@ -10,8 +10,8 @@ import { Trash, Plus, Undo } from '@primeicons/vue';
 import { ArrowDownAZ, ArrowUpAZ } from '@lucide/vue';
 
 const visible = defineModel<boolean>('visible', { default: false });
-const props = defineProps<{ type: VariantType | null }>();
-const emit = defineEmits<{ changed: [] }>();
+const props = defineProps<{ variantType: VariantType | null; prefillValue?: string | null }>();
+const emit = defineEmits<{ updated: [] }>();
 const toast = useToast();
 
 interface WorkingValue {
@@ -41,9 +41,13 @@ const forceDialogVisible = ref(false);
 function snapshotFromType(t: VariantType | null) {
     typeName.value = t?.name ?? '';
     values.value = (t?.values ?? []).map((v) => ({ id: v.id, value: v.value, markedForDelete: false }));
+
+    if (props.prefillValue?.trim()) {
+        values.value.push({ id: null, value: props.prefillValue.trim(), markedForDelete: false });
+    }
 }
 
-watch(() => props.type, snapshotFromType, { immediate: true });
+watch(() => props.variantType, snapshotFromType, { immediate: true });
 
 watch(visible, (isVisible) => {
     if (!isVisible) {
@@ -51,7 +55,7 @@ watch(visible, (isVisible) => {
     } else {
         saveError.value = '';
         blockedValues.value = [];
-        snapshotFromType(props.type); // reset to a clean slate every time the dialog opens
+        snapshotFromType(props.variantType);
     }
 });
 
@@ -69,10 +73,10 @@ function sortAlphabetically() {
     sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
 }
 const isDirty = computed(() => {
-    if (!props.type) return false;
-    if (typeName.value.trim() !== props.type.name) return true;
+    if (!props.variantType) return false;
+    if (typeName.value.trim() !== props.variantType.name) return true;
 
-    const original = props.type.values ?? [];
+    const original = props.variantType.values ?? [];
     if (values.value.length !== original.length) return true;
 
     return values.value.some((v, index) => {
@@ -107,7 +111,7 @@ function toggleDelete(item: WorkingValue) {
 }
 
 function discard() {
-    snapshotFromType(props.type);
+    snapshotFromType(props.variantType);
 }
 
 function startEditing(index: number) {
@@ -146,8 +150,8 @@ function cancelEdit(index: number) {
 }
 
 function save(force = false) {
-    if (!props.type) return;
-
+    if (!props.variantType) return;
+    
     const trimmedName = typeName.value.trim();
     if (!trimmedName) {
         toast.add({ severity: 'warn', summary: 'Type name is required', life: 3000 });
@@ -167,7 +171,7 @@ function save(force = false) {
     saving.value = true;
 
     router.patch(
-        VariantTypeController.update(props.type.id).url,
+        VariantTypeController.update(props.variantType.id).url,
         { name: trimmedName, values: payloadValues, force },
         {
             preserveScroll: true,
@@ -175,7 +179,8 @@ function save(force = false) {
                 toast.add({ severity: 'success', summary: 'Variant type saved', life: 3000 });
                 forceDialogVisible.value = false;
                 blockedValues.value = [];
-                emit('changed');
+                visible.value = false; 
+                emit('updated');
             },
             onError: (errors) => {
                 if (errors.blocked_values) {
@@ -203,8 +208,16 @@ function confirmForceDelete() {
 </script>
 
 <template>
-    <Dialog v-model:visible="visible" modal header="Edit Variant Type" :style="{ width: '30rem' }" >
-        <div v-if="type" class="space-y-4 py-4">
+    <Dialog 
+        v-model:visible="visible" 
+        modal 
+        header="Edit Variant Type" 
+        :style="{ width: '30rem' }" 
+        :pt="{
+            content: { class:'max-h-[500px] overflow-y-auto'}
+        }"
+    >
+        <div v-if="variantType" class="space-y-4 py-4">
             <div class="grid gap-1.5">
                 <label class="text-sm font-medium">Type name</label>
                 <InputText v-model="typeName" fluid />
@@ -292,17 +305,16 @@ function confirmForceDelete() {
                     />
                 </div>
             </Message>
-            <div class="flex justify-end gap-2 pt-2">
-                <Button label="Discard" severity="secondary" variant="text" :disabled="!isDirty || saving" @click="discard" />
-                <Button label="Save changes" :loading="saving" :disabled="!isDirty" @click="() => save()" />
-            </div>
-
-            <ForceDeleteValuesDialog
-                v-model:visible="forceDialogVisible"
-                :blocked-values="blockedValues"
-                :processing="saving"
-                @confirm="confirmForceDelete"
-            />
         </div>
+        <template #footer>
+            <Button label="Discard" severity="secondary" variant="text" :disabled="!isDirty || saving" @click="discard" />
+            <Button label="Save changes" :loading="saving" :disabled="!isDirty" @click="() => save()" />
+        </template>
     </Dialog>
+    <ForceDeleteValuesDialog
+        v-model:visible="forceDialogVisible"
+        :blocked-values="blockedValues"
+        :processing="saving"
+        @confirm="confirmForceDelete"
+    />
 </template>

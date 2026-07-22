@@ -7,6 +7,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use App\Enums\ProductStatus;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
+use App\Models\ProductVariant;
 
 class UpdateProductRequest extends FormRequest
 {
@@ -39,7 +40,23 @@ class UpdateProductRequest extends FormRequest
 
             'variants' => ['array'],
             'variants.*.id' => ['nullable', 'integer', 'exists:product_variants,id'],
-            'variants.*.sku' => ['nullable', 'string', 'max:255'],
+            'variants.*.sku' => [
+                'nullable', 'string', 'max:255', 'distinct',
+                function ($attribute, $value, $fail) {
+                    // e.g. $attribute = "variants.2.sku"
+                    preg_match('/variants\.(\d+)\.sku/', $attribute, $m);
+                    $index = $m[1] ?? null;
+                    $rowId = $index !== null ? $this->input("variants.{$index}.id") : null;
+
+                    $exists = ProductVariant::where('sku', $value)
+                        ->when($rowId, fn ($q) => $q->where('id', '!=', $rowId))
+                        ->exists();
+
+                    if ($exists) {
+                        $fail('This SKU is already in use by another variant.');
+                    }
+                },
+            ],
             'variants.*.additional_price' => ['required', 'numeric'],
             'variants.*.stock' => ['required', 'integer', 'min:0'],
             'variants.*.values' => ['required', 'array', 'min:1'],

@@ -217,7 +217,7 @@ defineExpose({ reset, hasNoImages });
             :showCancelButton="false"
             :pt="{ 
                 root: { class: 'border-0!' },
-                header: { class: 'hidden!'}
+                header: { class: 'hidden!'},
             }"
             @select="handleSelect"
         >
@@ -257,8 +257,12 @@ defineExpose({ reset, hasNoImages });
             </template>
 
             <template #empty>
-                <div 
-                    class="cursor-pointer rounded-xl border-2 border-dashed border-surface-200 p-12 py-24 text-center transition-colors hover:border-primary-400 dark:border-surface-700"
+                <div
+                    class="cursor-pointer rounded-xl border-2 border-dashed p-12 py-24 text-center transition-colors hover:border-primary-400 dark:border-surface-700"
+                    :class="{
+                        'border-red-500': validationErrors.length || hasNoImages || errors?.length,
+                        'border-surface-200': !(validationErrors.length || hasNoImages || errors?.length)
+                    }"
                     @click="openFileDialog"
                 >
                     <p class="m-0! text-muted-color!">Drag and drop images here, or click to browse.</p>

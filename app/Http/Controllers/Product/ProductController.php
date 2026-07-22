@@ -46,7 +46,7 @@ class ProductController extends Controller
     public function store(StoreProductRequest $request)
     {
         $product = DB::transaction(function () use ($request) {
-            $product = Product::create($request->safe()->except(['images', 'selections', 'variants', 'deleted_variant_ids']));
+            $product = Product::create($request->safe()->except(['images', 'variants', 'deleted_variant_ids']));
 
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $index => $image) {
@@ -55,10 +55,6 @@ class ProductController extends Controller
                         ->usingFileName($product->generateImageFileName($image, $index))
                         ->toMediaCollection('images');
                 }
-            }
-
-            if ($request->filled('selections')) {
-                $this->generator->generate($product, $request->validated('selections'));
             }
 
             $this->syncVariants($product, $request->input('variants', []));
@@ -110,11 +106,9 @@ class ProductController extends Controller
                         ->toMediaCollection('images');
                 }
             }
-            // if ($request->filled('selections')) {
-            //     $this->generator->generate($product, $request->validated('selections'));
-            // }
 
             $this->syncVariants($product, $request->input('variants', []), $request->input('deleted_variant_ids', []));
+            
         });
 
         return back()->with('success', 'Product updated.');
@@ -128,6 +122,8 @@ class ProductController extends Controller
                 ->delete();
         }
 
+        $seenSignatures = [];
+
         foreach ($workingVariants as $variantData) {
             $variantValues = collect($variantData['values'] ?? [])
                 ->map(fn ($value) => (int) $value['id'])
@@ -139,6 +135,15 @@ class ProductController extends Controller
                 continue;
             }
 
+            $signature = collect($variantValues)->sort()->implode('-');
+
+            if (isset($seenSignatures[$signature])) {
+                throw ValidationException::withMessages([
+                    'variants' => 'Duplicate variant combination detected — each variant must have a unique set of values.',
+                ]);
+            }
+            $seenSignatures[$signature] = true;
+            
             $variant = null;
             if (! empty($variantData['id'])) {
                 $variant = $product->variants()->find((int) $variantData['id']);
@@ -157,7 +162,7 @@ class ProductController extends Controller
                     'stock' => (int) ($variantData['stock'] ?? $variant->stock),
                 ]);
             }
-
+            
             $variant->values()->sync($variantValues);
         }
     }

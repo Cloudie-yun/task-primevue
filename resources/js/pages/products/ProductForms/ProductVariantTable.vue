@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { Trash } from '@primeicons/vue';
-import { ref } from 'vue';
+import { Trash, Undo } from '@primeicons/vue';
+import { computed, nextTick, reactive, ref } from 'vue';
 import type { VariantType } from '@/types/product-settings';
 
 export type WorkingVariant = {
-    id?: number; // present only for variants that already exist in the DB
-    _key: string; // stable row key: `v-{id}` for existing, `new-{uuid}` for freshly generated
+    id?: number;
+    _key: string;
     sku: string;
     additional_price: number;
     stock: number;
     values: { id: number; value: string; variant_type_id: number }[];
+    markedForDelete: boolean;
 };
 
 defineProps<{ variantTypes: VariantType[]; scrollHeight: number | '300' }>();
@@ -17,38 +18,103 @@ defineProps<{ variantTypes: VariantType[]; scrollHeight: number | '300' }>();
 const variants = defineModel<WorkingVariant[]>('variants', { required: true });
 const deletedIds = defineModel<number[]>('deletedIds', { default: () => [] });
 
-const editingRows = ref<WorkingVariant[]>([]);
 const selectedRows = ref<WorkingVariant[]>([]);
+const attemptedSubmit = ref(false); // set true once the parent tries to save, so errors show even on untouched rows
 
-function variantLabel(variant: WorkingVariant) {
-    return variant.values.map((value) => value.value).join(' / ');
-}
+// --- Validation -----------------------------------------------------------
 
-function onRowEditSave(event: { newData: WorkingVariant }) {
-    const index = variants.value.findIndex((item) => item._key === event.newData._key);
-    if (index !== -1) {
-        variants.value[index] = { ...event.newData };
-    }
-}
+function fieldErrors(variant: WorkingVariant): { additional_price?: string; stock?: string } {
+    const errors: { additional_price?: string; stock?: string } = {};
 
-function removeVariants(rows: WorkingVariant[]) {
-    // Only variants that already exist in the DB need to be flagged for deletion on save.
-    const idsToDelete = rows.filter((row) => row.id).map((row) => row.id as number);
-    if (idsToDelete.length) {
-        deletedIds.value = [...deletedIds.value, ...idsToDelete];
+    if (variant.additional_price === null || Number.isNaN(Number(variant.additional_price))) {
+        errors.additional_price = 'Enter a valid amount';
     }
 
-    const keysToRemove = new Set(rows.map((row) => row._key));
-    variants.value = variants.value.filter((item) => !keysToRemove.has(item._key));
-    selectedRows.value = selectedRows.value.filter((item) => !keysToRemove.has(item._key));
+    if (
+        variant.stock === null ||
+        !Number.isFinite(Number(variant.stock)) ||
+        !Number.isInteger(Number(variant.stock)) ||
+        Number(variant.stock) < 0
+    ) {
+        errors.stock = 'Enter a whole number, 0 or more';
+    }
+
+    return errors;
+}
+
+const invalidKeys = computed(() => {
+    const keys = new Set<string>();
+    variants.value.forEach((variant) => {
+        if (variant.markedForDelete) return; // no point validating a row about to be removed
+        if (Object.keys(fieldErrors(variant)).length) keys.add(variant._key);
+    });
+    return keys;
+});
+
+function rowClass(data: WorkingVariant) {
+    if (data.markedForDelete) return 'opacity-50';
+    if (attemptedSubmit.value && invalidKeys.value.has(data._key)) return 'bg-red-50 dark:bg-red-950/30';
+    return '';
+}
+
+// Exposed so the parent (ProductVariantsTab -> ProductForm) can block submit and
+// direct attention to the first bad row before the request even goes out.
+function validate(): boolean {
+    attemptedSubmit.value = true;
+
+    if (invalidKeys.value.size === 0) return true;
+
+    const firstInvalidKey = variants.value.find((v) => invalidKeys.value.has(v._key))?._key;
+    if (firstInvalidKey) {
+        nextTick(() => {
+            const el = document.querySelector(`[data-variant-row="${firstInvalidKey}"] input`);
+            (el as HTMLElement | null)?.focus();
+            el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+    }
+
+    return false;
+}
+
+defineExpose({ validate });
+
+// --- Delete / undo ----------------------------------------------------------
+
+function setDeleted(rows: WorkingVariant[], deleted: boolean) {
+    rows.forEach((row) => {
+        row.markedForDelete = deleted;
+
+        if (!row.id) return; // unsaved rows never need to be tracked in deletedIds
+
+        const already = deletedIds.value.includes(row.id);
+        if (deleted && !already) {
+            deletedIds.value = [...deletedIds.value, row.id];
+        } else if (!deleted && already) {
+            deletedIds.value = deletedIds.value.filter((id) => id !== row.id);
+        }
+    });
+
+    selectedRows.value = selectedRows.value.filter((row) => !rows.some((r) => r._key === row._key));
 }
 
 function deleteVariant(variant: WorkingVariant) {
-    removeVariants([variant]);
+    setDeleted([variant], true);
+}
+
+function undoDelete(variant: WorkingVariant) {
+    setDeleted([variant], false);
 }
 
 function deleteSelected() {
-    if (selectedRows.value.length) removeVariants(selectedRows.value);
+    if (selectedRows.value.length) setDeleted(selectedRows.value, true);
+}
+
+function isRowSelectable(event: { data: WorkingVariant }) {
+    return !event.data.markedForDelete;
+}
+
+function variantLabel(variant: WorkingVariant) {
+    return variant.values.map((value) => value.value).join(' / ');
 }
 </script>
 
@@ -60,50 +126,93 @@ function deleteSelected() {
         </div>
 
         <DataTable
-            v-model:editingRows="editingRows"
             v-model:selection="selectedRows"
             :value="variants"
             dataKey="_key"
-            editMode="row"
             stripedRows
             scrollable
             :scrollHeight="scrollHeight + 'px'"
             class="w-full"
-            @row-edit-save="onRowEditSave"
+            :rowClass="rowClass"
+            :isRowSelectable="isRowSelectable"
         >
             <template #empty> No variants yet. </template>
+
             <Column selectionMode="multiple" style="width: 3rem" />
-            <Column header="Variant" style="width: 25%" bodyStyle="text-align:left">
+
+            <Column header="Variant" style="width: 22%" bodyStyle="text-align:left">
                 <template #body="{ data }">
-                    <span class="text-muted-foreground">{{ variantLabel(data) }}</span>
+                    <span :class="data.markedForDelete ? 'text-muted-foreground line-through' : 'text-muted-foreground'">
+                        {{ variantLabel(data) }}
+                    </span>
                 </template>
             </Column>
+
             <Column field="sku" header="SKU" style="width: 22%" bodyStyle="text-align:left">
                 <template #body="{ data }">
-                    <span class="text-muted-foreground">{{ data.sku || '—' }}</span>
-                </template>
-                <template #editor="{ data, field }">
-                    <InputText v-model="data[field]" fluid />
+                    <InputText v-model="data.sku" :disabled="data.markedForDelete" size="small" fluid />
                 </template>
             </Column>
+
             <Column field="additional_price" header="Additional Price" style="width: 20%" bodyStyle="text-align:left">
                 <template #body="{ data }">
-                    {{ Number(data.additional_price).toLocaleString('en-US', { style: 'currency', currency: 'MYR' }) }}
-                </template>
-                <template #editor="{ data, field }">
-                    <InputNumber v-model="data[field]" mode="currency" currency="MYR" locale="en-US" fluid />
+                    <div :data-variant-row="data._key">
+                        <Inplace :disabled="data.markedForDelete">
+                            <template #display>
+                                <span :class="{ 'text-red-600 dark:text-red-400': attemptedSubmit && fieldErrors(data).additional_price }">
+                                    {{ Number(data.additional_price || 0).toLocaleString('en-US', { style: 'currency', currency: 'MYR' }) }}
+                                </span>
+                            </template>
+                            <template #content>
+                                <InputNumber
+                                    v-model="data.additional_price"
+                                    mode="currency"
+                                    currency="MYR"
+                                    locale="en-US"
+                                    autofocus
+                                    fluid
+                                    :invalid="attemptedSubmit && !!fieldErrors(data).additional_price"
+                                />
+                            </template>
+                        </Inplace>
+                        <p v-if="attemptedSubmit && fieldErrors(data).additional_price" class="mt-1 text-xs text-red-600 dark:text-red-400">
+                            {{ fieldErrors(data).additional_price }}
+                        </p>
+                    </div>
                 </template>
             </Column>
+
             <Column field="stock" header="Stock" style="width: 15%" bodyStyle="text-align:left">
-                <template #body="{ data }">{{ data.stock }}</template>
-                <template #editor="{ data, field }">
-                    <InputNumber v-model="data[field]" fluid />
+                <template #body="{ data }">
+                    <div>
+                        <Inplace :disabled="data.markedForDelete">
+                            <template #display>
+                                <span :class="{ 'text-red-600 dark:text-red-400': attemptedSubmit && fieldErrors(data).stock }">
+                                    {{ data.stock }}
+                                </span>
+                            </template>
+                            <template #content>
+                                <InputNumber
+                                    v-model="data.stock"
+                                    autofocus
+                                    fluid
+                                    :invalid="attemptedSubmit && !!fieldErrors(data).stock"
+                                />
+                            </template>
+                        </Inplace>
+                        <p v-if="attemptedSubmit && fieldErrors(data).stock" class="mt-1 text-xs text-red-600 dark:text-red-400">
+                            {{ fieldErrors(data).stock }}
+                        </p>
+                    </div>
                 </template>
             </Column>
-            <Column :rowEditor="true" style="width: 10%" bodyStyle="text-align:center" />
+
             <Column field="actions" header="" style="width: 1%" bodyStyle="text-align:center">
                 <template #body="{ data }">
-                    <Button severity="danger" variant="text" rounded @click="deleteVariant(data)">
+                    <Button v-if="data.markedForDelete" severity="secondary" variant="text" rounded @click="undoDelete(data)">
+                        <Undo />
+                    </Button>
+                    <Button v-else severity="danger" variant="text" rounded @click="deleteVariant(data)">
                         <Trash />
                     </Button>
                 </template>
