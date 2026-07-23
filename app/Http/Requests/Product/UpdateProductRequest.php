@@ -37,6 +37,14 @@ class UpdateProductRequest extends FormRequest
                         ->where('model_type', \App\Models\Product::class);
                 }),
             ],
+            
+            'attribute_value_ids' => ['array'],
+            'attribute_value_ids.*' => [
+                'integer',
+                Rule::exists('variant_values', 'id')->where(function ($query) {
+                    $query->whereHas('type', fn ($q) => $q->where('generates_variants', false));
+                }),
+            ],
 
             'variants' => ['array'],
             'variants.*.id' => ['nullable', 'integer', 'exists:product_variants,id'],

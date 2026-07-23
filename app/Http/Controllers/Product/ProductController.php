@@ -59,6 +59,8 @@ class ProductController extends Controller
 
             $this->syncVariants($product, $request->input('variants', []));
 
+            $product->attributeValues()->sync($request->input('attribute_value_ids', []));
+
             return $product;
         });
 
@@ -108,6 +110,8 @@ class ProductController extends Controller
             }
 
             $this->syncVariants($product, $request->input('variants', []), $request->input('deleted_variant_ids', []));
+
+            $product->attributeValues()->sync($request->input('attribute_value_ids', []));
             
         });
 
@@ -138,7 +142,7 @@ class ProductController extends Controller
             $signature = collect($variantValues)->sort()->implode('-');
 
             if (isset($seenSignatures[$signature])) {
-                throw ValidationException::withMessages([
+                throw \Illuminate\Validation\ValidationException::withMessages([
                     'variants' => 'Duplicate variant combination detected — each variant must have a unique set of values.',
                 ]);
             }

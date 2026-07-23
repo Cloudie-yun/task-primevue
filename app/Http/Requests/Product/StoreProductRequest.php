@@ -33,6 +33,14 @@ class StoreProductRequest extends FormRequest
             'images' => ['required', 'array', 'min:1'],
             'images.*' => ['file', 'mimes:jpg,jpeg,png,gif,webp,avif', 'max:5120'],
 
+            'attribute_value_ids' => ['array'],
+            'attribute_value_ids.*' => [
+                'integer',
+                Rule::exists('variant_values', 'id')->where(function ($query) {
+                    $query->whereHas('type', fn ($q) => $q->where('generates_variants', false));
+                }),
+            ],
+                        
             'variants' => ['nullable', 'array'],
             'variants.*.sku' => ['nullable', 'string', 'max:255', 'distinct', Rule::unique('product_variants', 'sku')],
             'variants.*.additional_price' => ['required', 'numeric'],

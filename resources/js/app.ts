@@ -41,6 +41,7 @@ createInertiaApp({
                 // theme: { preset: Aura },
                 theme: { preset: Noir },
                 // unstyled: true,
+                ripple: true,
                 license: primeUIKey,
             })
             .directive('tooltip', Tooltip)

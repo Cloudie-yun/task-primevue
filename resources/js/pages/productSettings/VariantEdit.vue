@@ -26,6 +26,8 @@ interface BlockedValue {
     value: string;
     variant_count: number;
     skus: string[];
+    attribute_product_count: number;
+    attribute_product_names: string[];
 }
 
 const typeName = ref('');

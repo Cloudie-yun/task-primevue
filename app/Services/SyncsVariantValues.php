@@ -17,19 +17,22 @@ class SyncsVariantValues
             $blocked = collect();
 
             foreach ($toRemove as $value) {
-                $variants = $value->productVariants()->get();
+                $variantUsage = $value->productVariants()->get();
+                $attributeUsage = $value->products()->get(['products.id', 'products.name']);
 
-                if ($variants->isNotEmpty() && ! $force) {
+                if (($variantUsage->isNotEmpty() || $attributeUsage->isNotEmpty()) && ! $force) {
                     $blocked->push([
                         'id' => $value->id,
                         'value' => $value->value,
-                        'variant_count' => $variants->count(),
-                        'skus' => $variants->pluck('sku')->all(),
+                        'variant_count' => $variantUsage->count(),
+                        'skus' => $variantUsage->pluck('sku')->all(),
+                        'attribute_product_count' => $attributeUsage->count(),
+                        'attribute_product_names' => $attributeUsage->pluck('name')->all(),
                     ]);
                     continue;
                 }
 
-                $variants->each->delete();
+                $variantUsage->each->delete();
                 $value->delete();
             }
 

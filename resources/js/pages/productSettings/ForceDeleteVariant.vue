@@ -6,6 +6,8 @@ interface BlockedValue {
     value: string;
     variant_count: number;
     skus: string[];
+    attribute_product_count: number;
+    attribute_product_names: string[];
 }
 
 const visible = defineModel<boolean>('visible', { default: false });
@@ -40,24 +42,36 @@ watch(visible, (isVisible) => {
                     :value="value.id"
                 >
                     <AccordionHeader>
-                        <div class="flex w-full items-center justify-between">
+                        <div class="flex w-full items-center justify-between gap-2">
                             <span>{{ value.value }}</span>
 
-                            <Tag severity="danger" class="mr-3">
-                                {{ value.variant_count }} variants
-                            </Tag>
+                            <div class="flex gap-2">
+                                <Tag v-if="value.variant_count" severity="danger">
+                                    {{ value.variant_count }} variant{{ value.variant_count === 1 ? '' : 's' }}
+                                </Tag>
+                                <Tag v-if="value.attribute_product_count" severity="warn">
+                                    {{ value.attribute_product_count }} product{{ value.attribute_product_count === 1 ? '' : 's' }} tagged
+                                </Tag>
+                            </div>
                         </div>
                     </AccordionHeader>
 
                     <AccordionContent>
-                        <ul class="space-y-1 text-sm">
-                            <li
-                                v-for="sku in value.skus"
-                                :key="sku"
-                            >
-                                • {{ sku }}
-                            </li>
-                        </ul>
+                        <div class="space-y-3 text-sm">
+                            <div v-if="value.skus.length">
+                                <p class="mb-1 font-medium text-muted-foreground">Used in variants (SKU):</p>
+                                <ul class="space-y-1">
+                                    <li v-for="sku in value.skus" :key="sku">• {{ sku }}</li>
+                                </ul>
+                            </div>
+
+                            <div v-if="value.attribute_product_names.length">
+                                <p class="mb-1 font-medium text-muted-foreground">Tagged as an attribute on:</p>
+                                <ul class="space-y-1">
+                                    <li v-for="name in value.attribute_product_names" :key="name">• {{ name }}</li>
+                                </ul>
+                            </div>
+                        </div>
                     </AccordionContent>
                 </AccordionPanel>
             </Accordion>

@@ -3,7 +3,7 @@ import { Head } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import type { Product } from '@/types/product';
 import type { VariantType } from '@/types/product-settings';
-import ProductVariantTable from './ProductForms/ProductVariantTable.vue';
+import ProductVariantTable from './ProductForms/ProductVariants/ProductVariantTable.vue';
 import { index as productsIndex, edit as productsEdit } from '@/routes/products';
 
 const props = defineProps<{ product: Product; variantTypes: VariantType[] }>();
@@ -34,7 +34,7 @@ const pageTitle = computed(() => `Variants - ${props.product.name}`);
             </div>
 
             <div class="rounded-xl border bg-white p-4 shadow-sm dark:bg-surface-800">
-                <ProductVariantTable :product="product" :variant-types="variantTypes" :scroll-height="600" />
+                <!-- <ProductVariantTable :product="product" :variant-types="variantTypes" :scroll-height="600" /> -->
             </div>
         </div>
     </div>

@@ -130,7 +130,7 @@ function handleSubmit({ valid, values: formValues }: CreateDialogSubmitEvent) {
 
     router.post(
         VariantTypeController.store().url,
-        { name: formValues.name, generates_variants: formValues.generates_variants.value, values: values.value },
+        { name: formValues.name, generates_variants: formValues.generates_variants, values: values.value },
         {
             preserveScroll: true,
 
@@ -169,7 +169,7 @@ const toggle = (event: any) =>{
         :dialog-style="{ width: '28rem' }"
         form-class="space-y-6 py-6"
         :resolver="resolver"
-        :initial-values="{ name: '', generates_variants: false }"
+        :initial-values="{ name: '', generates_variants: false}"
         :processing="processing"
         @submit="handleSubmit"
     >

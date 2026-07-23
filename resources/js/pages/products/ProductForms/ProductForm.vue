@@ -16,7 +16,7 @@ const props = defineProps<{ product?: Product | null; categories: Category[]; va
 const toast = useToast();
 const isEditing = computed(() => !!props.product);
 const imageTabRef = ref<{ hasNoImages: boolean; reset: () => void }>();
-const variantsTabRef = ref<{ validate: () => boolean }>();
+const variantsTabRef = ref<{ validate: () => boolean; hasNoVariants: boolean; noProductName: boolean }>();
 const activeTab = ref('0');
 const activeTabKey = computed(() => `productFormActiveTab-${props.product?.id ?? 'new'}`);
 
@@ -30,6 +30,7 @@ const form = useForm({
     images: [] as File[],
     deleted_image_ids: [] as number[],
     selections: {} as Record<number, number[]>,
+    attribute_value_ids: [] as number[],
     variants: [] as WorkingVariant[],
     deleted_variant_ids: [] as number[],
 });
@@ -62,6 +63,7 @@ const FIELD_TAB_MAP: Record<string, string> = {
     price: '0',
     images: '1',
     deleted_image_ids: '1',
+    attribute_value_ids: '2',
     selections: '2',
     variants: '2',
     deleted_variant_ids: '2',
@@ -107,6 +109,36 @@ onBeforeUnmount(() => {
     removeInertiaListener?.();
 });
 
+// ---------- Handle Form Error Validation ----------
+watch(
+    () => [form.name, form.category_id, form.description, form.price],
+    ([name, category_id, description, price]) => {
+        if (typeof name === 'string' && name.trim() && form.errors.name) {
+            form.clearErrors('name');
+        }
+        if (category_id !== null && form.errors.category_id) {
+            form.clearErrors('category_id');
+        }
+        if (typeof description === 'string' && description.trim() && form.errors.description) {
+            form.clearErrors('description');
+        }
+        if (price !== null && price?.toString().length > 0 && form.errors.price) {
+            form.clearErrors('price');
+        }
+    },
+);
+
+function handleVariantsNameRequired() {
+    form.setError('name', 'Enter a product name before generating variants');
+    activeTab.value = '0';
+    toast.add({
+        severity: 'error',
+        summary: 'Product name required',
+        detail: 'Enter a product name before generating variant SKUs',
+        life: 4000,
+    });
+}
+
 // Form Submit Function
 function submit(status: 'draft' | 'published') {
     form.status = status;
@@ -126,9 +158,10 @@ function submit(status: 'draft' | 'published') {
         return;
     }
 
-    if (variantsTabRef.value && !variantsTabRef.value.validate()) {
+    const variantsValid = variantsTabRef.value?.validate() ?? true;
+    if (!variantsValid) {
         activeTab.value = '2';
-        toast.add({ severity: 'error', summary: 'Check Variants', detail: 'Some variant rows need fixing before saving', life: 4000 });
+        toast.add({ severity: 'error', summary: 'Check Variants Tab', detail: 'Please fix the highlighted variant rows before saving', life: 4000 });
         return;
     }
 
@@ -142,9 +175,24 @@ function submit(status: 'draft' | 'published') {
     };
 
     if (props.product) {
-        form.patch(ProductController.update(props.product.id).url, { ...options, onSuccess: () => imageTabRef.value?.reset() });
+        form.patch(
+            ProductController.update(props.product.id).url, { 
+                ...options, 
+                onSuccess: () => {
+                    imageTabRef.value?.reset(); 
+                    toast.add({ severity: 'success', summary: 'Product updated', detail: 'Changes saved successfully', life: 3000 });
+                },
+            }
+       );
     } else {
-        form.post(ProductController.store().url, options);
+        form.post(ProductController.store().url, {
+                ...options, 
+                onSuccess: () => {
+                    imageTabRef.value?.reset();
+                    toast.add({ severity: 'success', summary: 'Product created', detail: 'Product saved successfully', life: 3000 });
+                },
+            }
+        );
     }
 }
 
@@ -198,9 +246,11 @@ function archive() {
                     v-model:selections="form.selections"
                     v-model:variants="form.variants"
                     v-model:deleted-variant-ids="form.deleted_variant_ids"
+                    v-model:attribute-value-ids="form.attribute_value_ids"
                     :product="product"
                     :product-name="form.name"
                     :variant-types="variantTypes"
+                    @name-required="handleVariantsNameRequired"
                 />
             </TabPanel>
         </TabPanels>

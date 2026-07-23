@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Trash, Undo } from '@primeicons/vue';
-import { computed, nextTick, reactive, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import type { VariantType } from '@/types/product-settings';
 import { variantRowSchema } from '@/validation/product';
 
@@ -20,7 +20,7 @@ const variants = defineModel<WorkingVariant[]>('variants', { required: true });
 const deletedIds = defineModel<number[]>('deletedIds', { default: () => [] });
 
 const selectedRows = ref<WorkingVariant[]>([]);
-const attemptedSubmit = ref(false); // set true once the parent tries to save, so errors show even on untouched rows
+const attemptedSubmit = ref(false);
 
 // --- Validation -----------------------------------------------------------
 
@@ -35,7 +35,7 @@ function fieldErrors(variant: WorkingVariant): { additional_price?: string; stoc
     const errors: { additional_price?: string; stock?: string } = {};
     for (const issue of result.error.issues) {
         const field = issue.path[0] as 'additional_price' | 'stock';
-        if (!errors[field]) errors[field] = issue.message; // first error per field only
+        if (!errors[field]) errors[field] = issue.message;
     }
     return errors;
 }
@@ -43,20 +43,21 @@ function fieldErrors(variant: WorkingVariant): { additional_price?: string; stoc
 const invalidKeys = computed(() => {
     const keys = new Set<string>();
     variants.value.forEach((variant) => {
-        if (variant.markedForDelete) return; // no point validating a row about to be removed
+        if (variant.markedForDelete) return;
         if (Object.keys(fieldErrors(variant)).length) keys.add(variant._key);
     });
     return keys;
 });
 
+// New rows (never persisted, not marked for delete) get a green highlight;
+// error rows get red; deleted rows get faded. Order matters — delete/error win over "new".
 function rowClass(data: WorkingVariant) {
     if (data.markedForDelete) return 'opacity-50';
     if (attemptedSubmit.value && invalidKeys.value.has(data._key)) return 'bg-red-50! dark:bg-red-950/30!';
+    if (!data.id) return 'bg-green-50! dark:bg-green-950/30!';
     return '';
 }
 
-// Exposed so the parent (ProductVariantsTab -> ProductForm) can block submit and
-// direct attention to the first bad row before the request even goes out.
 function validate(): boolean {
     attemptedSubmit.value = true;
 
@@ -82,7 +83,7 @@ function setDeleted(rows: WorkingVariant[], deleted: boolean) {
     rows.forEach((row) => {
         row.markedForDelete = deleted;
 
-        if (!row.id) return; // unsaved rows never need to be tracked in deletedIds
+        if (!row.id) return;
 
         const already = deletedIds.value.includes(row.id);
         if (deleted && !already) {
@@ -92,7 +93,7 @@ function setDeleted(rows: WorkingVariant[], deleted: boolean) {
         }
     });
 
-    selectedRows.value = selectedRows.value.filter((row) => !rows.some((r) => r._key === row._key));
+    selectedRows.value = [];
 }
 
 function deleteVariant(variant: WorkingVariant) {
@@ -103,12 +104,17 @@ function undoDelete(variant: WorkingVariant) {
     setDeleted([variant], false);
 }
 
+// Selection can now contain a mix of active and deleted rows —
+// act only on the relevant subset for each button.
+const selectedActiveRows = computed(() => selectedRows.value.filter((r) => !r.markedForDelete));
+const selectedDeletedRows = computed(() => selectedRows.value.filter((r) => r.markedForDelete));
+
 function deleteSelected() {
-    if (selectedRows.value.length) setDeleted(selectedRows.value, true);
+    if (selectedActiveRows.value.length) setDeleted(selectedActiveRows.value, true);
 }
 
-function isRowSelectable(event: { data: WorkingVariant }) {
-    return !event.data.markedForDelete;
+function undoSelected() {
+    if (selectedDeletedRows.value.length) setDeleted(selectedDeletedRows.value, false);
 }
 
 function variantLabel(variant: WorkingVariant) {
@@ -120,7 +126,10 @@ function variantLabel(variant: WorkingVariant) {
     <div class="w-full space-y-2">
         <div v-if="selectedRows.length" class="flex items-center justify-between rounded-md border bg-surface-50 px-3 py-2 dark:bg-surface-800">
             <span class="text-sm text-muted-foreground">{{ selectedRows.length }} selected</span>
-            <Button label="Delete selected" severity="danger" variant="text" size="small" @click="deleteSelected" />
+            <div class="flex gap-2">
+                <Button v-if="selectedActiveRows.length" label="Delete selected" severity="danger" variant="text" size="small" @click="deleteSelected" />
+                <Button v-if="selectedDeletedRows.length" label="Undo delete for selected" severity="secondary" variant="text" size="small" @click="undoSelected" />
+            </div>
         </div>
 
         <DataTable
@@ -132,7 +141,6 @@ function variantLabel(variant: WorkingVariant) {
             :scrollHeight="scrollHeight + 'px'"
             class="w-full"
             :rowClass="rowClass"
-            :isRowSelectable="isRowSelectable"
         >
             <template #empty> No variants yet. </template>
 
@@ -148,7 +156,12 @@ function variantLabel(variant: WorkingVariant) {
 
             <Column field="sku" header="SKU" style="width: 22%" bodyStyle="text-align:left">
                 <template #body="{ data }">
-                    <InputText v-model="data.sku" :disabled="data.markedForDelete" size="small" fluid />
+                    <InputText 
+                        v-model="data.sku" 
+                        :disabled="data.markedForDelete" 
+                        size="small" 
+                        fluid 
+                    />
                 </template>
             </Column>
 
