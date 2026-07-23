@@ -34,7 +34,13 @@ const pageTitle = computed(() => `Variants - ${props.product.name}`);
             </div>
 
             <div class="rounded-xl border bg-white p-4 shadow-sm dark:bg-surface-800">
-                <!-- <ProductVariantTable :product="product" :variant-types="variantTypes" :scroll-height="600" /> -->
+                <ProductVariantTable
+                    ref="tableRef"
+                    v-model:variants="variants"
+                    v-model:deleted-ids="deletedVariantIds"
+                    :variant-types="variantTypes"
+                    :scroll-height="300"
+                />
             </div>
         </div>
     </div>

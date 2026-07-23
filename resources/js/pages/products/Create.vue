@@ -23,7 +23,7 @@ defineProps<{
 <template>
     <Head title="Create Product" />
 
-    <div class="mx-auto w-full max-w-4xl space-y-6 px-6 py-10">
+    <div class="mx-auto h-full w-full max-w-6xl space-y-6 px-6 py-10 relative max-h-[80vh]">
         <Heading
             variant="small"
             title="Create New Product"
@@ -31,6 +31,5 @@ defineProps<{
         />
 
         <ProductForm :categories="categories" :variant-types="variantTypes" />
-        <!-- <ProductForm :categories="categories" /> -->
     </div>
 </template>

@@ -30,6 +30,7 @@ export interface Product {
     description: string | null;
     price: string; // decimal:2 casts serialize as string in JSON, not number
     status: ProductStatus;
+    attributeValues?: ProductVariant[];
     variants?: ProductVariant[];
     media?: Media[];// present when eager-loaded via with('media')
     created_at: string;

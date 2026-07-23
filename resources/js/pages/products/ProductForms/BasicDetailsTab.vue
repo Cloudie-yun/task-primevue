@@ -92,10 +92,10 @@ function handleCategoryCreated() {
 </script>
 
 <template>
-    <div class="space-y-8 py-4">
+    <div class="space-y-8">
         <div class="grid gap-1.5">
             <FloatLabel variant="on">
-                <label for="name" class="flex gap-2 text-sm font-medium">
+                <label for="name" class="flex gap-2 text-sm font-semibold">
                     <span>Product name</span><span aria-hidden="true" class="text-red-500">*</span>
                 </label>
                 <!-- <InputText id="name" v-model="name" placeholder="Enter product name" fluid :invalid="!!errors.name" /> -->
@@ -105,36 +105,55 @@ function handleCategoryCreated() {
             <Message v-if="errors.name" severity="error" size="small" variant="simple">{{ errors.name }}</Message>
         </div>
 
-        <div class="grid gap-1.5">
-            <FloatLabel variant="on">
-                <AutoComplete
-                    v-model="selectedCategory"
-                    :suggestions="categorySuggestions"
-                    option-label="name"
-                    fluid
-                    dropdown
-                    :invalid="!!errors.category_id || isCategoryUnmatched"
-                    @complete="searchCategories"
-                    @blur="handleCategoryBlur"
-                >
-                    <template #empty>
-                        <div class="flex items-center gap-2 p-2 text-sm">
-                            <p class="text-muted-foreground">No categories found.</p>
-                            <Button text class="underline" @click="openCreateCategoryDialog">Create new category here</Button>
-                        </div>
-                    </template>
-                </AutoComplete>
-                <label class="flex gap-2 text-sm font-medium">
-                    <span>Category</span><span aria-hidden="true" class="text-red-500">*</span>
-                </label>
-            </FloatLabel>
-            <Message v-if="isCategoryUnmatched" severity="warn" size="small" variant="simple">
-                "{{ selectedCategory }}" isn't a category yet.
-                <Button text size="small" class="p-0 underline" severity="warn" @click="openCreateCategoryDialog">Create it</Button>
-            </Message>
-            <Message v-if="errors.category_id" severity="error" size="small" variant="simple">
-                {{ errors.category_id }}
-            </Message>
+        <div class="flex items-start justify-between gap-3">
+            <div class="grid gap-1.5 flex-1">
+                <FloatLabel variant="on">
+                    <AutoComplete
+                        v-model="selectedCategory"
+                        :suggestions="categorySuggestions"
+                        option-label="name"
+                        fluid
+                        dropdown
+                        :invalid="!!errors.category_id || isCategoryUnmatched"
+                        @complete="searchCategories"
+                        @blur="handleCategoryBlur"
+                    >
+                        <template #empty>
+                            <div class="flex items-center gap-2 p-2 text-sm">
+                                <p class="text-muted-foreground">No categories found.</p>
+                                <Button text class="underline" @click="openCreateCategoryDialog">Create new category here</Button>
+                            </div>
+                        </template>
+                    </AutoComplete>
+                    <label class="flex gap-2 text-sm font-medium">
+                        <span>Category</span><span aria-hidden="true" class="text-red-500">*</span>
+                    </label>
+                </FloatLabel>
+                <Message v-if="isCategoryUnmatched" severity="warn" size="small" variant="simple">
+                    "{{ selectedCategory }}" isn't a category yet.
+                    <Button text size="small" class="p-0 underline" severity="warn" @click="openCreateCategoryDialog">Create it</Button>
+                </Message>
+                <Message v-if="errors.category_id" severity="error" size="small" variant="simple">
+                    {{ errors.category_id }}
+                </Message>
+            </div>
+            <div class="grid gap-1.5">
+                <FloatLabel variant="on">
+                    <InputNumber
+                        id="price"
+                        v-model="price"
+                        mode="currency"
+                        currency="MYR"
+                        locale="en-US"
+                        fluid
+                        :invalid="!!errors.price"
+                    />
+                    <label for="price" class="flex gap-2 text-sm font-medium">
+                        <span>Price</span><span aria-hidden="true" class="text-red-500">*</span>
+                    </label>
+                </FloatLabel>
+                <Message v-if="errors.price" severity="error" size="small" variant="simple">{{ errors.price }}</Message>
+            </div>
         </div>
 
         <CategoryCreate
@@ -152,7 +171,7 @@ function handleCategoryCreated() {
                     id="description"
                     v-model="description"
                     fluid
-                    rows="4"
+                    rows="6"
                     auto-resize
                     :invalid="!!errors.description"
                 />
@@ -160,24 +179,6 @@ function handleCategoryCreated() {
             <Message v-if="errors.description" severity="error" size="small" variant="simple">
                 {{ errors.description }}
             </Message>
-        </div>
-
-        <div class="grid gap-1.5">
-            <FloatLabel variant="on">
-                <InputNumber
-                    id="price"
-                    v-model="price"
-                    mode="currency"
-                    currency="MYR"
-                    locale="en-US"
-                    fluid
-                    :invalid="!!errors.price"
-                />
-                <label for="price" class="flex gap-2 text-sm font-medium">
-                    <span>Price</span><span aria-hidden="true" class="text-red-500">*</span>
-                </label>
-            </FloatLabel>
-            <Message v-if="errors.price" severity="error" size="small" variant="simple">{{ errors.price }}</Message>
         </div>
     </div>
 </template>

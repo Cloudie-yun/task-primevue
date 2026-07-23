@@ -1,20 +1,15 @@
-<!-- ProductVariantTypeSelector.vue -->
 <script setup lang="ts">
-import { Trash, Plus, PlusCircle, MinusCircle } from '@primeicons/vue';
+import { Plus, PlusCircle, MinusCircle } from '@primeicons/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import type { VariantType } from '@/types/product-settings';
-import type { WorkingVariant } from './ProductVariantTable.vue';
 import CreateVariantTypeDialog from '@/pages/productSettings/VariantCreate.vue';
 import EditVariantTypeDialog from '@/pages/productSettings/VariantEdit.vue';
 
-const props = defineProps<{ variantTypes: VariantType[]; variants: WorkingVariant[] }>();
+const props = defineProps<{ variantTypes: VariantType[] }>();
 const selections = defineModel<Record<number, number[]>>('selections', { required: true });
 const attributeValueIds = defineModel<number[]>('attributeValueIds', { default: () => [] });
-const variantsTabRef = ref<{noProductName: boolean}>();
-const emit = defineEmits<{ typesUpdated: [] }>();
 
 const VALUE_LABEL_CUTOFF = 5;
-
 const attemptedSubmit = ref(false);
 
 interface Row {
@@ -27,7 +22,7 @@ function typeById(typeId: number | null) {
     return props.variantTypes.find((t) => Number(t.id) === typeId) ?? null;
 }
 
-// Live preview of what the generated SKU pattern will look like, based on
+// Hint showing what the generated SKU pattern will look like, based on
 // whichever combination-type rows currently have a type picked, in row order.
 const skuPattern = computed(() => {
     const names = rows.value
@@ -38,11 +33,12 @@ const skuPattern = computed(() => {
     return names.length ? names.join(' - ') : null;
 });
 
-// Dialogs
+// Dialogs — create type
 const createTypeDialogVisible = ref(false);
 const pendingTypeRow = ref<Row | null>(null);
 const pendingTypeName = ref<string | null>(null);
 
+// Dialogs — create value
 const editTypeDialogVisible = ref(false);
 const editTypeTarget = ref<VariantType | null>(null);
 const pendingNewValue = ref<string | null>(null);
@@ -66,15 +62,11 @@ function promptCreateValue(row: Row, searchTerm: string) {
     editTypeDialogVisible.value = true;
 }
 
-function onTypeUpdated() {
-    emit('typesUpdated');
-}
-
 function onTypeCreated(name: string) {
     pendingTypeName.value = name;
-    emit('typesUpdated');
 }
 
+// When a new value is created via the dialog, auto-select it on the row that triggered it
 watch(
     () => props.variantTypes,
     (types) => {
@@ -92,6 +84,7 @@ watch(
     },
 );
 
+// When a new type is created via the dialog, auto-select it on the row that triggered it
 watch(
     () => props.variantTypes,
     (types) => {
@@ -108,108 +101,39 @@ watch(
     },
 );
 
-// Seed rows from existing variants once (edit mode) — combination-type values only,
-// since attribute values never live on `variants`.
-let hasSeeded = false;
-
-watch(
-    () => props.variants,
-    (currentVariants) => {
-        const active = currentVariants.filter((v) => !v.markedForDelete);
-        const usedByType = new Map<number, Set<number>>();
-        active.forEach((v) => v.values.forEach((val) => {
-            if (!usedByType.has(val.variant_type_id)) usedByType.set(val.variant_type_id, new Set());
-            usedByType.get(val.variant_type_id)!.add(val.id);
-        }));
-
-        rows.value.forEach((row) => {
-            if (row.typeId === null) return;
-            const type = typeById(row.typeId);
-            if (!type?.generates_variants) return; // don't touch descriptive/attribute rows
-            const stillUsed = usedByType.get(row.typeId) ?? new Set();
-            row.valueIds = row.valueIds.filter((id) => stillUsed.has(id));
-        });
-    },
-    { deep: true }, // NOT immediate — the existing hasSeeded watcher owns initial seeding
-);
-
-// Seed a row for each descriptive type that already has attribute values selected (edit mode).
-let hasSeededAttributes = false;
-
-watch(
-    () => attributeValueIds.value,
-    (ids) => {
-        if (hasSeededAttributes || ids.length === 0) return;
-        hasSeededAttributes = true;
-
-        const byType = new Map<number, number[]>();
-        props.variantTypes
-            .filter((t) => !t.generates_variants)
-            .forEach((type) => {
-                const matched = (type.values ?? []).filter((v) => ids.includes(Number(v.id))).map((v) => Number(v.id));
-                if (matched.length) byType.set(Number(type.id), matched);
-            });
-
-        if (byType.size === 0) return;
-
-        const newRows = Array.from(byType.entries()).map(([typeId, valueIds]) => ({
-            key: crypto.randomUUID(),
-            typeId,
-            valueIds,
-        }));
-
-        // if the only row so far is the default empty one, replace it; otherwise append
-        if (rows.value.length === 1 && rows.value[0].typeId === null) {
-            rows.value = newRows;
-        } else {
-            rows.value = [...rows.value, ...newRows];
-        }
-    },
-    { immediate: true },
-);
-
-const usedValueIds = computed(() => {
-    const ids = new Set<number>();
-    props.variants.forEach((variant) => {
-        if (variant.markedForDelete) return;
-        variant.values.forEach((v) => ids.add(v.id));
-    });
-    return ids;
-});
-
-const existingCombinationKeys = computed(() => {
-    const keys = new Set<string>();
-    props.variants.forEach((variant) => {
-        if (variant.markedForDelete) return;
-        const key = variant.values.map((v) => v.id).sort((a, b) => a - b).join(',');
-        keys.add(key);
-    });
-    return keys;
-});
-
-function cartesianForPreview(): number[][] {
-    const groups = Object.values(selections.value).filter((ids) => ids.length);
-    if (!groups.length) return [];
-    return groups.reduce<number[][]>((combos, ids) => combos.flatMap((combo) => ids.map((id) => [...combo, id])), [[]]);
-}
-
-const generationPreview = computed(() => {
-    const combos = cartesianForPreview();
-    if (!combos.length) return null;
-
-    const newCount = combos.filter((c) => !existingCombinationKeys.value.has([...c].sort((a, b) => a - b).join(','))).length;
-
-    return { total: combos.length, new: newCount, existing: combos.length - newCount };
-});
-
 function makeRow(): Row {
     return { key: crypto.randomUUID(), typeId: null, valueIds: [] };
 }
 
-const rows = ref<Row[]>([makeRow()]);
+function buildInitialRows(): Row[] {
+    const fromSelections = Object.entries(selections.value)
+        .filter(([, ids]) => ids.length > 0)
+        .map(([typeId, ids]) => ({ key: crypto.randomUUID(), typeId: Number(typeId), valueIds: [...ids] }));
 
-// Split rows into `selections` (combination types → feeds cartesian generation)
-// and `attributeValueIds` (descriptive types → flat list of tag ids) on every change.
+    if (attributeValueIds.value.length) {
+        const byType = new Map<number, number[]>();
+        props.variantTypes
+            .filter((t) => !t.generates_variants)
+            .forEach((type) => {
+                const matched = (type.values ?? [])
+                    .filter((v) => attributeValueIds.value.includes(Number(v.id)))
+                    .map((v) => Number(v.id));
+                if (matched.length) byType.set(Number(type.id), matched);
+            });
+
+        byType.forEach((valueIds, typeId) => {
+            fromSelections.push({ key: crypto.randomUUID(), typeId, valueIds });
+        });
+    }
+    console.log(props.variantTypes.map(t => ({ name: t.name, gv: t.generates_variants, typeofGv: typeof t.generates_variants })));
+    return fromSelections.length ? fromSelections : [makeRow()];
+}
+
+const rows = ref<Row[]>(buildInitialRows());
+
+
+// Split rows into `selections` (generating types → cartesian generation on the backend)
+// and `attributeValueIds` (descriptive types → flat list of ids) on every change.
 watch(
     rows,
     () => {
@@ -297,7 +221,9 @@ const invalidRowKeys = computed(() => {
 function validate(): boolean {
     attemptedSubmit.value = true;
 
-    if (invalidRowKeys.value.size === 0) return true;
+    if (invalidRowKeys.value.size === 0) {
+        return true;
+    }
 
     const firstInvalidKey = rows.value.find((r) => invalidRowKeys.value.has(r.key))?.key;
     if (firstInvalidKey) {
@@ -309,7 +235,7 @@ function validate(): boolean {
     return false;
 }
 
-defineExpose({ generationPreview, validate });
+defineExpose({ validate });
 
 const canAddRow = computed(() => rows.value.length < props.variantTypes.length);
 </script>
@@ -338,7 +264,7 @@ const canAddRow = computed(() => rows.value.length < props.variantTypes.length);
                                 optionLabel="name"
                                 optionValue="id"
                                 placeholder="Select type"
-                                :invalid="attemptedSubmit || !!rowErrors(row) || variantsTabRef?.noProductName"
+                                :invalid="!!attemptedSubmit || !!rowErrors(row)"
                                 class="w-full"
                                 @update:modelValue="onTypeChange(row)"
                             >
@@ -346,6 +272,7 @@ const canAddRow = computed(() => rows.value.length < props.variantTypes.length);
                                     <div class="flex w-full items-center justify-between">
                                         <span>{{ option.name }}</span>
                                         <Tag v-if="!option.generates_variants" severity="secondary" class="text-[10px]">tag only</Tag>
+                                        <Tag v-else severity="primary" class="text-[10px]">sku</Tag>
                                     </div>
                                 </template>
                                 <template #footer>
@@ -364,22 +291,12 @@ const canAddRow = computed(() => rows.value.length < props.variantTypes.length);
                                 optionLabel="value"
                                 optionValue="id"
                                 :disabled="row.typeId === null"
-                                :invalid="attemptedSubmit || !!rowErrors(row) || variantsTabRef?.noProductName"
+                                :invalid="!!attemptedSubmit || !!rowErrors(row) "
                                 placeholder="Select values"
                                 filter
                                 class="w-full"
                                 @filter="onFilterChange(row, $event)"
                             >
-                                <template #option="{ option }">
-                                    <div class="flex w-full items-center justify-between">
-                                        <span>{{ option.value }}</span>
-                                        <span
-                                            v-if="usedValueIds.has(Number(option.id))"
-                                            class="ml-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary"
-                                            v-tooltip="'Used in an existing variant'"
-                                        />
-                                    </div>
-                                </template>
                                 <template #value>
                                     <span v-if="!row.valueIds.length" class="text-muted-foreground">Select values</span>
                                     <span v-else class="truncate">{{ selectedValueLabel(row) }}</span>
@@ -409,22 +326,27 @@ const canAddRow = computed(() => rows.value.length < props.variantTypes.length);
                 </tbody>
             </table>
         </div>
+        <div class="flex justify-between">
+            <div class="flex-1">
+                <Button label="Add Variant Type" severity="secondary" variant="text" size="small" :disabled="!canAddRow" @click="addRow">
+                    <template #icon><Plus /></template>
+                </Button>
+            </div>
 
-        <Button label="Add Variant Type" severity="secondary" variant="text" size="small" :disabled="!canAddRow" @click="addRow">
-            <template #icon><Plus /></template>
-        </Button>
+            <div class="text-right! justify-end!">
+                <Message severity="error" v-if="invalidRowKeys.size > 0" size="small" variant="simple">
+                    Please fix invalid variant rows before submitting.
+                </Message>
+                <Message severity="error" v-if="attemptedSubmit" size="small" variant="simple">
+                    Please select at least one variant type (sku) and value.
+                </Message>
+            </div>
+        </div>
     </div>
-    <!-- <p v-if="attemptedSubmit" class="mt-1 text-xs text-red-600 dark:text-red-400">
-        Please select at least one variant type and value.
-    </p> -->
-    <p v-if="attemptedSubmit && invalidRowKeys.size > 0" class="mt-1 text-xs text-red-600 dark:text-red-400">
-        Please select at least one variant type and value.
-    </p>
     <CreateVariantTypeDialog v-model:visible="createTypeDialogVisible" @created="onTypeCreated" />
     <EditVariantTypeDialog
         v-model:visible="editTypeDialogVisible"
         :variant-type="editTypeTarget"
         :prefill-value="pendingNewValue"
-        @updated="onTypeUpdated"
     />
 </template>

@@ -37,16 +37,13 @@ class StoreProductRequest extends FormRequest
             'attribute_value_ids.*' => [
                 'integer',
                 Rule::exists('variant_values', 'id')->where(function ($query) {
-                    $query->whereHas('type', fn ($q) => $q->where('generates_variants', false));
+                    $query->whereIn('variant_type_id', function ($sub) {
+                        $sub->select('id')
+                            ->from('variant_types')
+                            ->where('generates_variants', false);
+                    });
                 }),
             ],
-                        
-            'variants' => ['nullable', 'array'],
-            'variants.*.sku' => ['nullable', 'string', 'max:255', 'distinct', Rule::unique('product_variants', 'sku')],
-            'variants.*.additional_price' => ['required', 'numeric'],
-            'variants.*.stock' => ['required', 'integer', 'min:0'],
-            'variants.*.values' => ['required', 'array', 'min:1'],
-            'variants.*.values.*.id' => ['required', 'exists:variant_values,id'],
         ];
     }
 

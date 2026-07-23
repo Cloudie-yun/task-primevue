@@ -16,9 +16,7 @@ const props = defineProps<{ product?: Product | null; categories: Category[]; va
 const toast = useToast();
 const isEditing = computed(() => !!props.product);
 const imageTabRef = ref<{ hasNoImages: boolean; reset: () => void }>();
-const variantsTabRef = ref<{ validate: () => boolean; hasNoVariants: boolean; noProductName: boolean }>();
-const activeTab = ref('0');
-const activeTabKey = computed(() => `productFormActiveTab-${props.product?.id ?? 'new'}`);
+const variantsTabRef = ref<{ validate: () => boolean; hasNoVariants: boolean; }>();
 
 const form = useForm({
     name: props.product?.name ?? '',
@@ -29,8 +27,10 @@ const form = useForm({
     status: props.product?.status ?? 'draft',
     images: [] as File[],
     deleted_image_ids: [] as number[],
-    selections: {} as Record<number, number[]>,
-    attribute_value_ids: [] as number[],
+    selections: buildInitialSelections(props.product),
+    // attribute_value_ids: props.product?.attributeValues?.map((a) => a.id) ?? [],
+    // attribute_value_ids: props.product?.attributeValues?.map((a) => a.id) ?? [],
+    attribute_value_ids: props.product?.attributeValues?.map((a) => a.id) ?? [],
     variants: [] as WorkingVariant[],
     deleted_variant_ids: [] as number[],
 });
@@ -48,31 +48,19 @@ form.transform((data) => ({
         })),
 }));
 
-// Active Tab Watching
-watch(() => props.product?.id, () => {
-    activeTab.value = props.product ? (localStorage.getItem(activeTabKey.value) ?? '0') : '0';
-}, { immediate: true });
+function buildInitialSelections(product?: Product | null): Record<number, number[]> {
+    const map: Record<number, number[]> = {};
 
-watch(activeTab, (tab) => localStorage.setItem(activeTabKey.value, tab));
-
-const FIELD_TAB_MAP: Record<string, string> = {
-    name: '0',
-    slug: '0', // slug errors surface on the Basic Details tab, alongside name
-    category_id: '0',
-    description: '0',
-    price: '0',
-    images: '1',
-    deleted_image_ids: '1',
-    attribute_value_ids: '2',
-    selections: '2',
-    variants: '2',
-    deleted_variant_ids: '2',
-};
-
-function jumpToFirstErrorTab(errors: Record<string, string>) {
-    const firstField = Object.keys(errors)[0];
-    const tab = FIELD_TAB_MAP[firstField];
-    if (tab) activeTab.value = tab;
+ product?.variants?.forEach((variant) => {
+        variant.values.forEach((val) => {
+            const typeId = val.variant_type_id;
+            if (typeId == null) return;
+            if (!map[typeId]) map[typeId] = [];
+            if (!map[typeId].includes(val.id)) map[typeId].push(val.id);
+        });
+    });
+    console.log('product.attributeValues:', props.product?.attributeValues);
+    return map;
 }
 
 // ---------- Unsaved changes warning ----------
@@ -89,8 +77,6 @@ onMounted(() => {
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     removeInertiaListener = router.on('before', (event) => {
-        // only guard actual page navigations — form.patch()/form.post() are visits too,
-        // but they shouldn't trigger the "leaving page" warning on themselves
         if (event.detail.visit.method !== 'get') {
             return;
         }
@@ -128,72 +114,86 @@ watch(
     },
 );
 
-function handleVariantsNameRequired() {
-    form.setError('name', 'Enter a product name before generating variants');
-    activeTab.value = '0';
-    toast.add({
-        severity: 'error',
-        summary: 'Product name required',
-        detail: 'Enter a product name before generating variant SKUs',
-        life: 4000,
+// Form Submit Function
+function validateBasicFields(): boolean {
+    const result = productSchema.safeParse({
+        name: form.name,
+        category_id: form.category_id,
+        description: form.description,
+        price: form.price,
     });
+
+    if (result.success) return true;
+
+    for (const issue of result.error.issues) {
+        form.setError(issue.path[0] as keyof typeof form.data, issue.message);
+    }
+    return false;
 }
 
-// Form Submit Function
+function validateImages(): boolean {
+    return !imageTabRef.value?.hasNoImages;
+}
+
+
+function validateVariants(): boolean {
+    const valid = variantsTabRef.value?.validate() ?? true;
+    if (!valid) form.setError('variants', 'Please add at least one variant');
+    return valid;
+}
+
+function notifyValidationFailure(message: string) {
+    toast.add({ severity: 'warn', summary: 'Please Check', detail: message, life: 4000 });
+}
+
 function submit(status: 'draft' | 'published') {
-    form.status = status;
     form.clearErrors();
-    const result = productSchema.safeParse({ name: form.name, category_id: form.category_id, description: form.description, price: form.price });
 
-    if (!result.success) {
-        for (const issue of result.error.issues) form.setError(issue.path[0] as keyof typeof form.data, issue.message);
-        activeTab.value = '0';
-        toast.add({ severity: 'warn', summary: 'Please Check', detail: 'Please fix the highlighted fields', life: 4000 });
+    if (!validateBasicFields()) {
+        notifyValidationFailure('Please fix the highlighted fields');
+        return;
+    }
+    if (!validateImages()) {
+        notifyValidationFailure('At least one product image is required');
+        return;
+    }
+    if (!validateVariants()) {
+        notifyValidationFailure('Please fix the highlighted variant rows before saving');
         return;
     }
 
-    if (imageTabRef.value?.hasNoImages) {
-        activeTab.value = '1';
-        toast.add({ severity: 'error', summary: 'No Image Added', detail: 'At least one product image is required', life: 4000 });
-        return;
-    }
+    form.status = status;
+    submitForm();
+}
 
-    const variantsValid = variantsTabRef.value?.validate() ?? true;
-    if (!variantsValid) {
-        activeTab.value = '2';
-        toast.add({ severity: 'error', summary: 'Check Variants Tab', detail: 'Please fix the highlighted variant rows before saving', life: 4000 });
-        return;
-    }
-
-    const options = {
-        forceFormData: true,
-        onError: (errors: Record<string, string>) => {
-            const messages = Object.values(errors);
-            jumpToFirstErrorTab(errors);
-            toast.add({ severity: 'error', summary: isEditing.value ? 'Could not update product' : 'Could not create product', detail: messages.length === 1 ? messages[0] : `${messages[0]} (+${messages.length - 1} more issue${messages.length - 1 > 1 ? 's' : ''})`, life: 6000 });
-        },
+function submitForm() {
+    const onSuccess = () => {
+        imageTabRef.value?.reset();
+        toast.add({
+            severity: 'success',
+            summary: isEditing.value ? 'Product updated' : 'Product created',
+            detail: isEditing.value ? 'Changes saved successfully' : 'Product saved successfully',
+            life: 3000,
+        });
     };
 
-    if (props.product) {
-        form.patch(
-            ProductController.update(props.product.id).url, { 
-                ...options, 
-                onSuccess: () => {
-                    imageTabRef.value?.reset(); 
-                    toast.add({ severity: 'success', summary: 'Product updated', detail: 'Changes saved successfully', life: 3000 });
-                },
-            }
-       );
-    } else {
-        form.post(ProductController.store().url, {
-                ...options, 
-                onSuccess: () => {
-                    imageTabRef.value?.reset();
-                    toast.add({ severity: 'success', summary: 'Product created', detail: 'Product saved successfully', life: 3000 });
-                },
-            }
-        );
-    }
+    const onError = (errors: Record<string, string>) => {
+        const messages = Object.values(errors);
+        toast.add({
+            severity: 'error',
+            summary: isEditing.value ? 'Could not update product' : 'Could not create product',
+            detail: messages.length === 1
+                ? messages[0]
+                : `${messages[0]} (+${messages.length - 1} more issue${messages.length - 1 > 1 ? 's' : ''})`,
+            life: 6000,
+        });
+    };
+
+    const options = { forceFormData: true, onSuccess, onError };
+
+    props.product
+        ? form.patch(ProductController.update(props.product.id).url, options)
+        : form.post(ProductController.store().url, options);
 }
 
 function archive() {
@@ -204,62 +204,165 @@ function archive() {
 </script>
 
 <template>
-    <Tabs v-model:value="activeTab">
-        <TabList>
-            <Tab value="0">Basic Details</Tab>
-            <Tab value="1">Image</Tab>
-            <Tab value="2">Variants</Tab>
-        </TabList>
-        <TabPanels>
-            <TabPanel value="0">
-                <BasicDetailsTab
-                    v-model:name="form.name"
-                    v-model:category-id="form.category_id"
-                    v-model:description="form.description"
-                    v-model:price="form.price"
-                    :categories="categories"
-                    :errors="{ ...form.errors, name: form.errors.slug ?? form.errors.name }"
-                />
-            </TabPanel>
-            <TabPanel value="1">
-                <ProductImagesTab
-                    ref="imageTabRef"
-                    v-model="form.images"
-                    v-model:deleted-ids="form.deleted_image_ids"
-                    :product="product"
-                    :errors="form.errors.images"
-                />
-            </TabPanel>
-            <!-- <TabPanel value="2">
-                <ProductVariantsTab
-                    v-model:selections="form.selections"
-                    v-model:variants="form.variants"
-                    v-model:deleted-variant-ids="form.deleted_variant_ids"
-                    :product="product"
-                    :product-name="form.name"
-                    :variant-types="variantTypes"
-                />
-            </TabPanel> -->
-            <TabPanel value="2">
-                <ProductVariantsTab
-                    ref="variantsTabRef"
-                    v-model:selections="form.selections"
-                    v-model:variants="form.variants"
-                    v-model:deleted-variant-ids="form.deleted_variant_ids"
-                    v-model:attribute-value-ids="form.attribute_value_ids"
-                    :product="product"
-                    :product-name="form.name"
-                    :variant-types="variantTypes"
-                    @name-required="handleVariantsNameRequired"
-                />
-            </TabPanel>
-        </TabPanels>
-    </Tabs>
+    <div class="space-y-6 pb-10">
+        <!-- Main Grid -->
+        <div class="grid grid-cols-12 gap-10">
+            <div class="col-span-12 lg:col-span-8 space-y-6">
+                <Card>
+                    <template #title>Product Images</template>
+                    <template #content>
+                        <ProductImagesTab
+                            ref="imageTabRef"
+                            v-model="form.images"
+                            v-model:deleted-ids="form.deleted_image_ids"
+                            :product="product"
+                            :errors="form.errors.images"
+                        />
+                    </template>
+                </Card>
+                <!-- Basic Information -->
+                <Card>
+                    <template #title> Basic Information</template>
+                    <template #content>
+                        <BasicDetailsTab
+                            v-model:name="form.name"
+                            v-model:category-id="form.category_id"
+                            v-model:description="form.description"
+                            v-model:price="form.price"
+                            :categories="categories"
+                            :errors="{
+                                ...form.errors,
+                                name: form.errors.slug ?? form.errors.name
+                            }"
+                        />
+                    </template>
+                </Card>
+                <!-- Variants -->
+                <Card>
+                    <template #title> Product Variants </template>
+                    <template #content>
+                        <!-- <ProductVariantsTab
+                            ref="variantsTabRef"
+                            v-model:selections="form.selections"
+                            v-model:variants="form.variants"
+                            v-model:deleted-variant-ids="form.deleted_variant_ids"
+                            v-model:attribute-value-ids="form.attribute_value_ids"
+                            :product="product"
+                            :product-name="form.name"
+                            :variant-types="variantTypes"
+                        /> -->
+                        <ProductVariantsTab
+                            v-model:selections="form.selections"
+                            v-model:attributeValueIds="form.attribute_value_ids"
+                            :variant-types="variantTypes"
+                            :product="product"
+                            :product-name="form.name"
+                        />
+                    </template>
+                </Card>
+            </div>
 
-    <div class="flex justify-end gap-2 border-t pt-6">
-        <Button type="button" label="Cancel" severity="secondary" variant="text" @click="$inertia.visit(productsIndex().url)" />
-        <Button v-if="product?.status !== 'archived' && isEditing" label="Archive product" severity="danger" variant="text" :loading="form.processing" @click="archive" />
-        <Button type="submit" :label="isEditing ? 'Save Changes' : 'Save as Draft'" severity="secondary" :loading="form.processing" @click="submit(product?.status === 'published' ? 'published' : 'draft')" />
-        <Button v-if="product?.status !== 'published'" type="button" label="Publish" :loading="form.processing" @click="submit('published')" />
+            <!-- RIGHT SIDEBAR -->
+            <div class="col-span-12 lg:col-span-4">
+                <div class="sticky! top-6 space-y-6">
+                    <!-- Product Summary -->
+                    <Card>
+                        <template #title> Product Summary </template>
+                        <template #content>
+                            <div class="space-y-5">
+                                <div>
+                                    <div class="text-xs uppercase text-surface-500"> Name </div>
+                                    <div class="font-medium mt-1 wrap-break-word"> {{ form.name || 'Untitled Product' }} </div>
+                                </div>
+                                <Divider />
+                                <div class="flex justify-between">
+                                    <span class="text-surface-500"> Category </span>
+                                    <span>
+                                        {{ categories.find(c => c.id === form.category_id)?.name ?? '-'}}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-surface-500"> Base Price </span>
+
+                                    <span>
+                                        {{ form.price != null ? `RM ${Number(form.price).toFixed(2)}` : '-' }}
+                                    </span>
+                                </div>
+
+                                <div class="flex justify-between">
+                                    <span class="text-surface-500"> Images </span>
+                                    <span> {{ (product?.media?.length ?? 0) + form.images.length - form.deleted_image_ids.length}}</span>
+                                </div>
+
+                                <div class="flex justify-between">
+                                    <span class="text-surface-500"> Variants </span>
+                                    <span> {{ form.variants.filter(v => !v.markedForDelete).length }}</span>
+                                </div>
+                                <Divider />
+                                <div class="flex justify-between items-center">
+                                    <span class="text-surface-500"> Status </span>
+                                    <Tag
+                                        :value="form.status.toUpperCase()"
+                                        :severity="
+                                            form.status === 'published'
+                                                ? 'success'
+                                                : form.status === 'draft' ? 'warn' : 'danger'
+                                        "
+                                    />
+                                </div>
+                            </div>
+                        </template>
+                    </Card>
+                    <!-- Actions -->
+                    <Card>
+                        <template #title> Actions </template>
+                        <template #content>
+                            <div class="flex flex-col gap-3">
+                                <Button
+                                    type="button"
+                                    label="Cancel"
+                                    severity="secondary"
+                                    variant="outlined"
+                                    fluid
+                                    @click="$inertia.visit(productsIndex().url)"
+                                />
+
+                                <Button
+                                    v-if="product?.status !== 'archived' && isEditing"
+                                    label="Archive Product"
+                                    severity="danger"
+                                    variant="outlined"
+                                    fluid
+                                    :loading="form.processing"
+                                    @click="archive"
+                                />
+
+                                <Button
+                                    :label="
+                                        isEditing
+                                            ? 'Save Changes'
+                                            : 'Save as Draft'
+                                    "
+                                    severity="secondary"
+                                    fluid
+                                    :loading="form.processing"
+                                    @click="submit(product?.status === 'published'
+                                        ? 'published'
+                                        : 'draft')"
+                                />
+
+                                <Button
+                                    v-if="product?.status !== 'published'"
+                                    label="Publish Product"
+                                    fluid
+                                    :loading="form.processing"
+                                    @click="submit('published')"
+                                />
+                            </div>
+                        </template>
+                    </Card>
+                </div>
+            </div>
+        </div>
     </div>
 </template>

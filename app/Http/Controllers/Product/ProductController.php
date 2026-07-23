@@ -6,6 +6,8 @@ use App\Enums\ProductStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Product\StoreProductRequest;
 use App\Http\Requests\Product\UpdateProductRequest;
+use App\Actions\SyncProductAttributesAction;
+use App\Actions\SyncProductVariantsAction;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductVariant;
@@ -43,10 +45,15 @@ class ProductController extends Controller
         ]);
     }
 
-    public function store(StoreProductRequest $request)
-    {
-        $product = DB::transaction(function () use ($request) {
-            $product = Product::create($request->safe()->except(['images', 'variants', 'deleted_variant_ids']));
+    public function store(
+        StoreProductRequest $request,
+        SyncProductVariantsAction $syncVariants,
+        SyncProductAttributesAction $syncAttributes
+    ) {
+        $product = DB::transaction(function () use ($request, $syncVariants, $syncAttributes) {
+            $product = Product::create(
+                $request->safe()->except(['images', 'selections', 'deleted_variant_ids', 'attribute_value_ids'])
+            );
 
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $index => $image) {
@@ -57,9 +64,8 @@ class ProductController extends Controller
                 }
             }
 
-            $this->syncVariants($product, $request->input('variants', []));
-
-            $product->attributeValues()->sync($request->input('attribute_value_ids', []));
+            $syncVariants->handle($product, $request->input('selections', []));
+            $syncAttributes->handle($product, $request->input('attribute_value_ids', []));
 
             return $product;
         });
@@ -70,7 +76,8 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         return Inertia::render('products/Edit', [
-            'product' => $product->load(['category', 'media', 'variants.values.type']),
+            // 'product' => $product->load(['category', 'media', 'variants.values.type']),
+            'product' => $product->load(['category', 'media', 'variants.values.type', 'attributeValues.type']),
             'categories' => Category::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'variantTypes' => VariantType::with('values')->orderBy('name')->get(),
         ]);
