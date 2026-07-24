@@ -3,10 +3,8 @@
 namespace App\Actions;
 
 use App\Models\Product;
-use App\Models\ProductVariant;
 use App\Services\ProductVariantSkuGenerator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 class SyncProductVariantsAction
 {
@@ -21,15 +19,59 @@ class SyncProductVariantsAction
                     ->delete();
             }
 
+            $selections = collect($selections)
+                ->map(fn ($ids) => array_values(array_unique(array_map('intval', $ids))))
+                ->filter(fn ($ids) => count($ids) > 0)
+                ->all();
+
             $combinations = $this->cartesianProduct($selections);
+
+            $existingBySignature = $product->variants()
+                ->with('values')
+                ->get()
+                ->keyBy(fn ($variant) => $variant->values
+                    ->pluck('id')
+                    ->map(fn ($id) => (int) $id)
+                    ->sort()
+                    ->values()
+                    ->implode('-'));
 
             $seenSignatures = [];
             foreach ($combinations as $variantValueIds) {
-                $this->syncOne($product, $variantValueIds, $seenSignatures);
+                $signature = collect($variantValueIds)->sort()->implode('-');
+
+                if (isset($seenSignatures[$signature])) {
+                    continue;
+                }
+                $seenSignatures[$signature] = true;
+
+                $variant = $existingBySignature->get($signature);
+
+                if ($variant) {
+                    // Existing combination — SKU is a stable identifier once assigned,
+                    // never regenerate it here. Only stock/price change, and only if
+                    // they've actually drifted (avoids a no-op write bumping updated_at).
+                    $variant->fill([
+                        'additional_price' => $variant->additional_price,
+                        'stock' => $variant->stock,
+                    ]);
+
+                    if ($variant->isDirty()) {
+                        $variant->save();
+                    }
+                } else {
+                    // Genuinely new combination — generate a fresh SKU once.
+                    $variant = $product->variants()->create([
+                        'sku' => $this->skuGenerator->generate($product, $variantValueIds),
+                        'additional_price' => 0,
+                        'stock' => 0,
+                    ]);
+                }
+
+                $variant->values()->sync($variantValueIds);
             }
         });
     }
-
     private function cartesianProduct(array $selections): array
     {
         $groups = array_values(array_filter($selections, fn ($ids) => count($ids) > 0));
@@ -44,30 +86,5 @@ class SyncProductVariantsAction
             ))->all(),
             [[]]
         );
-    }
-
-    private function syncOne(Product $product, array $variantValueIds, array &$seenSignatures): void
-    {
-        $signature = collect($variantValueIds)->sort()->implode('-');
-
-        if (isset($seenSignatures[$signature])) {
-            return; // cartesian product can't actually produce duplicates, but stay defensive
-        }
-        $seenSignatures[$signature] = true;
-
-        $variant = $product->variants()
-            ->whereHas('values', fn ($q) => $q->whereIn('variant_value_id', $variantValueIds), '=', count($variantValueIds))
-            ->get()
-            ->first(fn ($v) => $v->values->pluck('id')->sort()->values()->all() === collect($variantValueIds)->sort()->values()->all());
-
-        $attributes = [
-            'sku' => $this->skuGenerator->resolve($product, '', $variantValueIds, $variant),
-            'additional_price' => $variant->additional_price ?? 0,
-            'stock' => $variant->stock ?? 0,
-        ];
-
-        $variant ? $variant->update($attributes) : $variant = $product->variants()->create($attributes);
-
-        $variant->values()->sync($variantValueIds);
     }
 }

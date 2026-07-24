@@ -29,7 +29,9 @@ class ProductVariantSkuGenerator
             ->get();
 
         $base = collect(preg_split('/\s+/', trim($product->name)))
-            ->filter()
+            ->map(fn ($word) => preg_replace('/[^A-Za-z0-9]/', '', $word)) // strip punctuation first
+            ->filter() // now drops empty strings left by pure-punctuation "words" too
+            ->take(6)
             ->map(fn ($word) => Str::upper(Str::substr($word, 0, 1)))
             ->implode('');
 

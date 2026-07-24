@@ -34,6 +34,7 @@ declare module 'vue' {
     InputText: typeof import('primevue/inputtext')['default']
     Message: typeof import('primevue/message')['default']
     MultiSelect: typeof import('primevue/multiselect')['default']
+    Paginator: typeof import('primevue/paginator')['default']
     Popover: typeof import('primevue/popover')['default']
     Select: typeof import('primevue/select')['default']
     Tag: typeof import('primevue/tag')['default']

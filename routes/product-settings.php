@@ -48,15 +48,14 @@ Route::middleware(['auth', 'verified'])
         Route::get('/', [ProductController::class, 'index'])->name('index');
         Route::get('/create', [ProductController::class, 'create'])->name('create');
         Route::post('/', [ProductController::class, 'store'])->name('store');
-        Route::get('/{product}/edit', [ProductController::class, 'edit'])->name('edit');
+        Route::get('/{product:slug}/edit', [ProductController::class, 'edit'])->name('edit');
         Route::patch('/{product}', [ProductController::class, 'update'])->name('update');
         Route::delete('/{product}', [ProductController::class, 'destroy'])->name('destroy');
-        Route::get('/{product}/variants', [ProductController::class, 'variants'])->name('variants.index');
 
         Route::delete('/{product}/images/{media}', [ProductImageController::class, 'destroy'])->name('images.destroy')->scopeBindings();
 
-        Route::post('/{product}/variants/generate', [ProductVariantController::class, 'generate'])->name('variants.generate');
-        Route::patch('/{product}/variants/{variant}', [ProductVariantController::class, 'update'])->name('variants.update')->scopeBindings();
-        Route::delete('/{product}/variants/{variant}', [ProductVariantController::class, 'destroy'])->name('variants.destroy')->scopeBindings();
+        Route::get('/variants', [ProductVariantController::class, 'index'])->name('variants.index');
+        Route::get('/{product:slug}/variants', [ProductVariantController::class, 'index'])->name('variants.show');
+        Route::put('/{product:slug}/variants', [ProductVariantController::class, 'update'])->name('variants.update');
     });
 

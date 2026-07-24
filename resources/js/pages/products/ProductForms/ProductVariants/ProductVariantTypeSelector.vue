@@ -6,7 +6,7 @@ import CreateVariantTypeDialog from '@/pages/productSettings/VariantCreate.vue';
 import EditVariantTypeDialog from '@/pages/productSettings/VariantEdit.vue';
 
 const props = defineProps<{ variantTypes: VariantType[] }>();
-const selections = defineModel<Record<number, number[]>>('selections', { required: true });
+const variantSelections = defineModel<Record<number, number[]>>('variantSelections', { required: true });
 const attributeValueIds = defineModel<number[]>('attributeValueIds', { default: () => [] });
 
 const VALUE_LABEL_CUTOFF = 5;
@@ -66,39 +66,47 @@ function onTypeCreated(name: string) {
     pendingTypeName.value = name;
 }
 
-// When a new value is created via the dialog, auto-select it on the row that triggered it
 watch(
     () => props.variantTypes,
     (types) => {
-        if (!pendingNewValue.value || !pendingValueRow.value) return;
+        // Handle newly created type
+        if (pendingTypeName.value && pendingTypeRow.value) {
+            const type = types.find(
+                t => t.name.toLowerCase() === pendingTypeName.value!.toLowerCase()
+            );
 
-        const type = types.find((t) => Number(t.id) === pendingValueRow.value!.typeId);
-        const match = type?.values?.find((v) => v.value.toLowerCase() === pendingNewValue.value!.toLowerCase());
+            if (type) {
+                pendingTypeRow.value.typeId = Number(type.id);
+                onTypeChange(pendingTypeRow.value);
+            }
 
-        if (match && !pendingValueRow.value.valueIds.includes(Number(match.id))) {
-            pendingValueRow.value.valueIds.push(Number(match.id));
+            pendingTypeName.value = null;
+            pendingTypeRow.value = null;
         }
 
-        pendingNewValue.value = null;
-        pendingValueRow.value = null;
-    },
-);
+        // Handle newly created value
+        if (pendingNewValue.value && pendingValueRow.value) {
+            const type = types.find(
+                t => Number(t.id) === pendingValueRow.value!.typeId
+            );
 
-// When a new type is created via the dialog, auto-select it on the row that triggered it
-watch(
-    () => props.variantTypes,
-    (types) => {
-        if (!pendingTypeName.value || !pendingTypeRow.value) return;
+            const value = type?.values?.find(
+                v => v.value.toLowerCase() === pendingNewValue.value!.toLowerCase()
+            );
 
-        const match = types.find((t) => t.name.toLowerCase() === pendingTypeName.value!.toLowerCase());
-        if (match) {
-            pendingTypeRow.value.typeId = Number(match.id);
-            onTypeChange(pendingTypeRow.value);
+            if (value) {
+                const id = Number(value.id);
+
+                if (!pendingValueRow.value.valueIds.includes(id)) {
+                    pendingValueRow.value.valueIds.push(id);
+                }
+            }
+
+            pendingNewValue.value = null;
+            pendingValueRow.value = null;
         }
-
-        pendingTypeName.value = null;
-        pendingTypeRow.value = null;
     },
+    { deep: true }
 );
 
 function makeRow(): Row {
@@ -106,7 +114,7 @@ function makeRow(): Row {
 }
 
 function buildInitialRows(): Row[] {
-    const fromSelections = Object.entries(selections.value)
+    const fromSelections = Object.entries(variantSelections.value)
         .filter(([, ids]) => ids.length > 0)
         .map(([typeId, ids]) => ({ key: crypto.randomUUID(), typeId: Number(typeId), valueIds: [...ids] }));
 
@@ -125,7 +133,6 @@ function buildInitialRows(): Row[] {
             fromSelections.push({ key: crypto.randomUUID(), typeId, valueIds });
         });
     }
-    console.log(props.variantTypes.map(t => ({ name: t.name, gv: t.generates_variants, typeofGv: typeof t.generates_variants })));
     return fromSelections.length ? fromSelections : [makeRow()];
 }
 
@@ -153,7 +160,7 @@ watch(
             }
         });
 
-        selections.value = nextSelections;
+        variantSelections.value = nextSelections;
         attributeValueIds.value = nextAttributeIds;
     },
     { deep: true, immediate: true },
@@ -258,62 +265,66 @@ const canAddRow = computed(() => rows.value.length < props.variantTypes.length);
                 <tbody>
                     <tr v-for="row in rows" :key="row.key" class="border-b last:border-b-0" :data-variant-type-row="row.key">
                         <td class="p-3 align-top">
-                            <Select
-                                v-model="row.typeId"
-                                :options="availableTypesFor(row)"
-                                optionLabel="name"
-                                optionValue="id"
-                                placeholder="Select type"
-                                :invalid="!!attemptedSubmit || !!rowErrors(row)"
-                                class="w-full"
-                                @update:modelValue="onTypeChange(row)"
-                            >
-                                <template #option="{ option }">
-                                    <div class="flex w-full items-center justify-between">
-                                        <span>{{ option.name }}</span>
-                                        <Tag v-if="!option.generates_variants" severity="secondary" class="text-[10px]">tag only</Tag>
-                                        <Tag v-else severity="primary" class="text-[10px]">sku</Tag>
-                                    </div>
-                                </template>
-                                <template #footer>
-                                    <div class="border-t p-2">
-                                        <Button text size="small" class="w-full justify-start!" @click="openCreateTypeDialog(row)">
-                                            <PlusCircle />Add New Type
-                                        </Button>
-                                    </div>
-                                </template>
-                            </Select>
+                            <FloatLabel variant="on">
+                                <Select
+                                    v-model="row.typeId"
+                                    :options="availableTypesFor(row)"
+                                    optionLabel="name"
+                                    optionValue="id"
+                                    :invalid="attemptedSubmit && !!rowErrors(row)"
+                                    class="w-full"
+                                    @update:modelValue="onTypeChange(row)"
+                                >
+                                    <template #option="{ option }">
+                                        <div class="flex w-full items-center justify-between">
+                                            <span>{{ option.name }}</span>
+                                            <Tag v-if="!option.generates_variants" severity="secondary" class="text-[10px]">tag only</Tag>
+                                            <Tag v-else severity="primary" class="text-[10px]">sku</Tag>
+                                        </div>
+                                    </template>
+                                    <template #footer>
+                                        <div class="border-t p-2">
+                                            <Button text size="small" class="w-full justify-start!" @click="openCreateTypeDialog(row)">
+                                                <PlusCircle />Add New Type
+                                            </Button>
+                                        </div>
+                                    </template>
+                                </Select>
+                                <Label :for="row.typeId">Variant Type</Label>
+                            </FloatLabel>
                         </td>
                         <td class="p-3 align-top">
-                            <MultiSelect
-                                v-model="row.valueIds"
-                                :options="valuesFor(row)"
-                                optionLabel="value"
-                                optionValue="id"
-                                :disabled="row.typeId === null"
-                                :invalid="!!attemptedSubmit || !!rowErrors(row) "
-                                placeholder="Select values"
-                                filter
-                                class="w-full"
-                                @filter="onFilterChange(row, $event)"
-                            >
-                                <template #value>
-                                    <span v-if="!row.valueIds.length" class="text-muted-foreground">Select values</span>
-                                    <span v-else class="truncate">{{ selectedValueLabel(row) }}</span>
-                                </template>
-                                <template #emptyfilter>
-                                    <div class="p-2">
-                                        <Button
-                                            :label="`Create \u201c${filterTextByRow[row.key] ?? ''}\u201d`"
-                                            text
-                                            size="small"
-                                            class="w-full justify-start"
-                                            @click="promptCreateValue(row, filterTextByRow[row.key] ?? '')"
-                                        />
-                                    </div>
-                                </template>
-                            </MultiSelect>
-                            <p v-if="rowErrors(row)" class="mt-1 text-xs text-red-600 dark:text-red-400">
+                            <FloatLabel variant="on">
+                                <MultiSelect
+                                    v-model="row.valueIds"
+                                    :options="valuesFor(row)"
+                                    optionLabel="value"
+                                    optionValue="id"
+                                    :disabled="row.typeId === null"
+                                    :invalid="attemptedSubmit && !!rowErrors(row)"
+                                    filter
+                                    class="w-full"
+                                    @filter="onFilterChange(row, $event)"
+                                >
+                                    <template #value>
+                                        <span v-if="!row.valueIds.length" class="text-muted-foreground">Select values</span>
+                                        <span v-else class="truncate">{{ selectedValueLabel(row) }}</span>
+                                    </template>
+                                    <template #emptyfilter>
+                                        <div class="p-2">
+                                            <Button
+                                                :label="`Create \u201c${filterTextByRow[row.key] ?? ''}\u201d`"
+                                                text
+                                                size="small"
+                                                class="w-full justify-start"
+                                                @click="promptCreateValue(row, filterTextByRow[row.key] ?? '')"
+                                            />
+                                        </div>
+                                    </template>
+                                </MultiSelect>
+                                <Label :for="row.valueIds">Values</Label>
+                            </FloatLabel>
+                            <p v-if="attemptedSubmit && rowErrors(row)" class="mt-1 text-xs text-red-600 dark:text-red-400">
                                 {{ rowErrors(row) }}
                             </p>
                         </td>
@@ -337,7 +348,7 @@ const canAddRow = computed(() => rows.value.length < props.variantTypes.length);
                 <Message severity="error" v-if="invalidRowKeys.size > 0" size="small" variant="simple">
                     Please fix invalid variant rows before submitting.
                 </Message>
-                <Message severity="error" v-if="attemptedSubmit" size="small" variant="simple">
+                <Message severity="error" v-if="attemptedSubmit && invalidRowKeys.size > 0" size="small" variant="simple">
                     Please select at least one variant type (sku) and value.
                 </Message>
             </div>

@@ -9,7 +9,7 @@ const props = defineProps<{
     errors: Record<string, string | undefined>;
 }>();
 
-const emit = defineEmits<{ categoryCreated: [] }>();
+const emit = defineEmits<{ categoryCreated: []; categorySelected: [id: number] }>();
 const name = defineModel<string>('name', { required: true });
 const categoryId = defineModel<number | null>('categoryId', { required: true });
 const description = defineModel<string>('description', { required: true });
@@ -66,6 +66,7 @@ watch(
         if (created) {
             selectedCategory.value = created;
             pendingCategoryName.value = '';
+            emit('categorySelected', created.id);
         }
     },
 );

@@ -126,7 +126,7 @@ function statusSeverity(status: string) {
 
                 <Column header="" headerStyle="width: 15%" bodyStyle="text-align:center">
                     <template #body="{ data }">
-                        <Button as="a" :href="productEdit(data.id).url" severity="secondary" variant="text" rounded>
+                        <Button as="a" :href="productEdit(data.slug).url" severity="secondary" variant="text" rounded>
                             <Pencil />
                         </Button>
                         <Button severity="danger" variant="text" rounded @click="openDeleteDialog(data)">
@@ -143,6 +143,7 @@ function statusSeverity(status: string) {
                     </p>
                 </template>
             </DataTable>
+            
         </div>
         <ProductDelete v-model:visible="showDeleteDialog" :product="productToDelete" @deleted="handleDeleted" />
     </div>
