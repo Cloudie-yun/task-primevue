@@ -8,6 +8,7 @@ use App\Http\Requests\Product\UpdateProductVariantRequest;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Services\ProductVariantGenerator;
+use App\Actions\UpdateProductVariantsAction;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -23,51 +24,50 @@ class ProductVariantController extends Controller
                 ->get();
 
             return Inertia::render('products/variants/Index', [
-                'product' => $product->only(['id', 'name', 'category_id','slug']),
+                'product' => $product->only(['id', 'slug', 'name', 'category_id']),
                 'variants' => $variants,
                 'products' => [],
+                'cameFromBrowse' => $request->query('from') === 'browse'
             ]);
         }
 
-        // Unscoped: paginate by product, then eager-load each page's variants in full.
-        $productIds = Product::query()
-            ->orderBy('name')
-            ->paginate(15, ['id'], 'page')
-            ->through(fn ($p) => $p->id);
-
         $variants = ProductVariant::query()
             ->with(['product:id,name', 'values.type'])
-            ->whereIn('product_id', $productIds->items())
             ->orderBy('product_id')
             ->orderBy('id')
-            ->get();
+            ->paginate(12)
+            ->withQueryString();
+
+        $products = Product::query()
+            ->with('category:id,name')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'category_id'])
+            ->groupBy(fn ($p) => $p->category?->name ?? 'Uncategorized')
+            ->map(fn ($items, $categoryName) => [
+                'label' => $categoryName,
+                'items' => $items->map(fn ($p) => [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'slug' => $p->slug,
+                ])->values(),
+            ])
+            ->values();
 
         return Inertia::render('products/variants/Index', [
             'product' => null,
-            'variants' => $variants,
-            'productsPage' => $productIds, // paginator meta: current_page, last_page, links, etc.
-            'products' => Product::query()->orderBy('name')->get(['id', 'name','slug']), // for the filter dropdown, unrelated to grouping pagination
+            'variants' => $variants, // now a paginator, same shape as ProductController::index()
+            'products' => $products, // for the filter dropdown, unrelated to variants pagination
         ]);
     }
     
-    public function generate(GenerateProductVariantsRequest $request, Product $product)
+    public function update(UpdateProductVariantRequest $request, Product $product, UpdateProductVariantsAction $action)
     {
-        $created = $this->generator->generate($product, $request->validated('variant_selections'));
+        $action->handle(
+            $product,
+            $request->validated('variants', []),
+            $request->validated('deleted_variant_ids', [])
+        );
 
-        return back()->with('success', "{$created} variant(s) generated.");
-    }
-
-    public function update(UpdateProductVariantRequest $request, Product $product, ProductVariant $variant)
-    {
-        $variant->update($request->validated());
-
-        return back()->with('success', 'Variant updated.');
-    }
-
-    public function destroy(Product $product, ProductVariant $variant)
-    {
-        $variant->delete();
-
-        return back()->with('success', 'Variant deleted.');
+        return back()->with('success', 'Variants updated.');
     }
 }

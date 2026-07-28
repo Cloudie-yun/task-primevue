@@ -26,7 +26,7 @@ class ProductController extends Controller
             'products' => Product::query()
                 ->with(['category', 'media'])
                 ->orderBy('name')
-                ->paginate(15)
+                ->paginate(10)
                 ->withQueryString(),
         ]);
     }

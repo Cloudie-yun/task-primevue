@@ -22,62 +22,56 @@ function variantLabel(variant: VariantRow) {
 </script>
 
 <template>
-    <Card :class="hasErrors ? 'border-2 border-red-400! dark:border-red-700!' : ''">
-        <template #content>
-            <div class="flex items-start justify-between gap-4">
-                <div>
-                    <div class="text-xs uppercase text-surface-500">{{ variantLabel(variant) }}</div>
-                    <div class="font-medium text-muted-foreground">{{ variant.sku }}</div>
-                </div>
-                <Button severity="secondary" variant="text" rounded @click="emit('close')"><Times /></Button>
-            </div>
+    <div
+        class="flex flex-wrap items-center gap-3 rounded-lg border p-3"
+        :class="hasErrors ? 'border-red-400! dark:border-red-700!' : ''"
+    >
+        <!-- Identity -->
+        <div class="w-max">
+            <div class="truncate text-sm font-medium">{{ variantLabel(variant) }}</div>
+            <div class="truncate text-xs text-muted-foreground">{{ variant.sku }}</div>
+        </div>
 
-            <Message v-if="hasErrors" severity="error" :closable="false" class="mt-3">
-                <div class="flex items-start gap-2">
-                    <ExclamationTriangle class="mt-0.5 h-4 w-4 shrink-0" />
-                    <div>
-                        <div class="font-medium">This variant has {{ errorMessages.length }} issue{{ errorMessages.length > 1 ? 's' : '' }}:</div>
-                        <ul class="mt-1 list-disc pl-4">
-                            <li v-for="(msg, i) in errorMessages" :key="i">{{ msg }}</li>
-                        </ul>
-                    </div>
-                </div>
-            </Message>
-
-            <div class="mt-4 grid grid-cols-2 gap-4">
-                <div class="space-y-1">
-                    <label class="text-xs font-medium text-muted-foreground">Additional Price</label>
-                    <InputNumber
-                        v-model="working.additional_price"
-                        mode="currency" currency="MYR" locale="en-US" fluid
-                        :disabled="working.markedForDelete"
-                        :invalid="attemptedSubmit && !!errors.additional_price"
-                    />
-                    <p v-if="attemptedSubmit && errors.additional_price" class="text-xs text-red-600">{{ errors.additional_price }}</p>
-                </div>
-                <div class="space-y-1">
-                    <label class="text-xs font-medium text-muted-foreground">Stock</label>
-                    <InputNumber
-                        v-model="working.stock"
-                        fluid
-                        :disabled="working.markedForDelete"
-                        :invalid="attemptedSubmit && !!errors.stock"
-                    />
-                    <p v-if="attemptedSubmit && errors.stock" class="text-xs text-red-600">{{ errors.stock }}</p>
-                </div>
+        <!-- Fields -->
+        <div class="flex items-start gap-5 flex-1 justify-end mr-5">
+            <div class="flex flex-col gap-1.5">
+                <InputNumber
+                    v-model="working.additional_price"
+                    mode="currency" currency="MYR" locale="en-US"
+                    :disabled="working.markedForDelete"
+                    :invalid="attemptedSubmit && !!errors.additional_price"
+                    :title="attemptedSubmit ? errors.additional_price : undefined"
+                />
+                <Message v-if="attemptedSubmit && errors.additional_price" severity="error" variant="simple" size="small">{{ errors.additional_price }}</Message>
             </div>
-
-            <div class="mt-4 flex justify-end gap-2">
-                <Button v-if="isDirty && !working.markedForDelete" label="Revert" severity="secondary" variant="text" @click="emit('cancel')" />
-                <Button
-                    :label="working.markedForDelete ? 'Undo delete' : 'Mark for deletion'"
-                    :severity="working.markedForDelete ? 'secondary' : 'danger'"
-                    variant="outlined"
-                    @click="emit('toggleDelete')"
-                >
-                    <template #icon><Undo v-if="working.markedForDelete" /><Trash v-else /></template>
-                </Button>
+            
+            <div class="flex flex-col gap-1.5">
+                <InputNumber
+                    v-model="working.stock"
+                    :disabled="working.markedForDelete"
+                    :invalid="attemptedSubmit && !!errors.stock"
+                    :title="attemptedSubmit ? errors.stock : undefined"
+                />
+                <Message v-if="attemptedSubmit && errors.stock" severity="error" variant="simple" size="small">{{ errors.stock }}</Message>
             </div>
-        </template>
-    </Card>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-1">
+            <Button v-if="isDirty && !working.markedForDelete" severity="secondary" variant="text" size="small" @click="emit('cancel')" >
+                <Undo />
+            </Button>
+            <Button
+                :severity="working.markedForDelete ? 'secondary' : 'danger'"
+                variant="text"
+                size="small"
+                rounded
+                @click="emit('toggleDelete')"
+            >
+                <Undo v-if="working.markedForDelete" />
+                <Trash v-else />
+            </Button>
+            <Button severity="secondary" variant="text" size="small" rounded @click="emit('close')"><Times /></Button>
+        </div>
+    </div>
 </template>

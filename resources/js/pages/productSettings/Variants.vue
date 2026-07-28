@@ -68,7 +68,7 @@ function handleDeleted() {
     <Head title="Product Variants" />
     <h1 class="sr-only">Product Variants</h1>
 
-    <div class="max-w-5xl space-y-6">
+    <div class="max-w-6xl space-y-6">
         <div class="flex items-center justify-between">
             <Heading
                 variant="small"
@@ -85,7 +85,7 @@ function handleDeleted() {
             :value="variantTypes"
             dataKey="id"
             tableStyle="min-width: 50rem"
-            scrollHeight="500px"  
+            scrollHeight="700px"  
             stripedRows
         >
             <Column field="name" header="Type" headerStyle="width: 20%">

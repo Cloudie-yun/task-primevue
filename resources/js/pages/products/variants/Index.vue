@@ -7,43 +7,51 @@ import { index as productsIndex, edit as productsEdit } from '@/routes/products'
 import { index as variantsIndex, show as variantsShow, update as variantsUpdate } from '@/routes/products/variants';
 import ProductVariantsTable, { type VariantRow } from './ProductVariantsTable.vue';
 import ProductVariantEditCard from './ProductVariantEditCard.vue';
-
-interface PaginatedIds {
-    data: number[]; current_page: number; last_page: number; per_page: number; total: number;
-}
+import { PaginatedResponse } from '@/types/pagination.js';
+import ConfirmDeleteDialog from '@/components/DeleteDialog.vue';
 
 const props = defineProps<{
-    product?: { id: number; name: string; category?: { name: string } | null; price?: string } | null;
-    variants: VariantRow[];
-    productsPage?: PaginatedIds;
-    products: { id: number; name: string; slug: string;}[];
+    product?: { id: number; slug: string; name: string; category?: { name: string } | null; price?: string } | null;
+    variants: VariantRow[] | PaginatedResponse<VariantRow>;
+    products: { label: string; items: { id: number; name: string; slug: string }[] }[];
+    cameFromBrowse?: boolean;
 }>();
+
+const variantRows = computed<VariantRow[]>(() =>
+    Array.isArray(props.variants) ? props.variants : props.variants.data
+);
 
 const isScoped = computed(() => !!props.product);
 
 defineOptions({
-    layout: (pageProps: { product?: { id: number; name: string } }) => ({
-        breadcrumbs: pageProps.product
-            ? [
-                  { title: 'Products List', href: productsIndex().url },
-                  { title: pageProps.product.name, href: productsEdit(pageProps.product.slug).url },
-                  { title: 'Variants', href: '' },
-              ]
-            : [{ title: 'All Variants', href: '' }],
+    layout: (pageProps: { product?: { id: number; name: string; slug: string }; cameFromBrowse?: boolean }) => ({
+        breadcrumbs: !pageProps.product
+            ? [{ title: 'Products List', href: productsIndex().url }, { title: 'All Variants', href: '' }]
+            : pageProps.cameFromBrowse
+              ? [
+                    { title: 'Products List', href: productsIndex().url },
+                    { title: 'All Variants', href: variantsIndex().url },
+                    { title: pageProps.product.name, href: '' },
+                ]
+              : [
+                    { title: 'Products List', href: productsIndex().url },
+                    { title: pageProps.product.name, href: productsEdit(pageProps.product.slug).url },
+                    { title: 'Variants', href: '' },
+                ],
     }),
 });
 
 function goToProduct(productId: number | null) {
     if (!productId) { router.get(variantsIndex().url); return; }
-    const slug = props.products.find((p) => p.id === productId)?.slug;
-    if (slug) router.get(variantsShow(slug).url);
+    const slug = props.products.flatMap((g) => g.items).find((p) => p.id === productId)?.slug;
+    if (slug) router.get(variantsShow(slug).url, { from: 'browse' });
 }
 
 // --- Working copy of price/stock, per variant id ---
 type WorkingRow = { id: number; additional_price: number; stock: number; markedForDelete: boolean };
 
 const originals = new Map<number, { additional_price: number; stock: number }>(
-    props.variants.map((v) => [v.id, { additional_price: Number(v.additional_price), stock: v.stock }])
+    variantRows.value.map((v) => [v.id, { additional_price: Number(v.additional_price), stock: v.stock }])
 );
 
 // Track edited rows
@@ -52,7 +60,7 @@ const dirtyIds = computed(() =>
 );
 
 const form = useForm({
-    variants: props.variants.map((v) => ({
+    variants: variantRows.value.map((v) => ({
         id: v.id,
         additional_price: Number(v.additional_price),
         stock: v.stock,
@@ -65,7 +73,7 @@ function workingRow(id: number): WorkingRow {
 }
 
 const selectedVariantId = ref<number | null>(null);
-const selectedVariant = computed(() => props.variants.find((v) => v.id === selectedVariantId.value) ?? null);
+const selectedVariant = computed(() => variantRows.value.find((v) => v.id === selectedVariantId.value) ?? null);
 const selectedWorking = computed(() => (selectedVariantId.value !== null ? workingRow(selectedVariantId.value) : null));
 
 function selectVariant(id: number) {
@@ -112,6 +120,33 @@ const dirtyOrDeletedCount = computed(() =>
     form.variants.filter((v) => v.markedForDelete || isRowDirty(v.id)).length
 );
 
+// --- Show Delete Product Variants Confirmation Message ---
+const showDeleteConfirm = ref(false);
+
+const pendingDeletions = computed(() =>
+    form.variants.filter((v) => v.markedForDelete)
+);
+
+function variantLabelById(id: number) {
+    const v = variantRows.value.find((row) => row.id === id);
+    return v ? v.values.map((val) => val.value).join(' / ') : '';
+}
+
+// --- Resync Updated Variant Data ---
+function resyncWorkingState() {
+    originals.clear();
+    variantRows.value.forEach((v) =>
+        originals.set(v.id, { additional_price: Number(v.additional_price), stock: v.stock })
+    );
+
+    form.variants = variantRows.value.map((v) => ({
+        id: v.id,
+        additional_price: Number(v.additional_price),
+        stock: v.stock,
+        markedForDelete: false,
+    }));
+}
+// --- Submit ---
 const toast = useToast();
 
 function submit() {
@@ -122,7 +157,15 @@ function submit() {
         selectedVariantId.value = [...invalidIds.value][0];
         return;
     }
+    //Show delete confirmation dialog
+    if (pendingDeletions.value.length > 0) {
+        showDeleteConfirm.value = true;
+        return;
+    }
+    performSubmit();
+}
 
+function performSubmit() {
     form.transform((data) => ({
         variants: data.variants
             .filter((v) => !v.markedForDelete)
@@ -130,10 +173,15 @@ function submit() {
         deleted_variant_ids: data.variants.filter((v) => v.markedForDelete).map((v) => v.id),
     })).put(variantsUpdate(props.product!.slug).url, {
         onSuccess: () => {
+            resyncWorkingState();
             toast.add({ severity: 'success', summary: 'Variants updated', life: 3000 });
             selectedVariantId.value = null;
+            showDeleteConfirm.value = false;
         },
-        onError: () => toast.add({ severity: 'error', summary: 'Failed to update variants', life: 4000 }),
+        onError: () => {
+            toast.add({ severity: 'error', summary: 'Failed to update variants', life: 4000 });
+            showDeleteConfirm.value = false;
+        },
     });
 }
 </script>
@@ -154,11 +202,16 @@ function submit() {
                 v-if="!isScoped"
                 :model-value="null"
                 :options="products"
+                optionGroupLabel="label"
+                optionGroupChildren="items"
                 option-label="name"
                 option-value="id"
-                placeholder="Filter by product"
+                filter
+                filter-placeholder="Search products..."
+                placeholder="Select to edit product"
                 show-clear
-                class="w-64"
+                fluid
+                class="max-w-1/3"
                 @update:model-value="goToProduct"
             />
 
@@ -173,10 +226,16 @@ function submit() {
                 @toggle-delete="toggleDelete(selectedVariant.id)"
                 @close="selectedVariantId = null"
             />
-            
+            <div
+                v-else-if="isScoped"
+                class="flex items-center justify-center rounded-lg border border-dashed p-6 text-sm text-muted-foreground"
+            >
+                Select a row below to edit its price and stock.
+        </div>
             <ProductVariantsTable
-                :variants="variants"
+                :variants="variantRows"
                 :is-scoped="isScoped"
+                :product-slug="product?.slug"
                 :working-lookup="(id: number) => workingRow(id)"
                 :selected-id="selectedVariantId"
                 :attempted-submit="attemptedSubmit"
@@ -186,10 +245,10 @@ function submit() {
             />
 
             <Paginator
-                v-if="!isScoped && productsPage"
-                :rows="productsPage.per_page"
-                :totalRecords="productsPage.total"
-                :first="(productsPage.current_page - 1) * productsPage.per_page"
+                v-if="!isScoped && !Array.isArray(variants)"
+                :rows="variants.per_page"
+                :totalRecords="variants.total"
+                :first="(variants.current_page - 1) * variants.per_page"
                 @page="(e) => router.get(variantsIndex().url, { page: e.page + 1 }, { preserveScroll: true })"
             />
 
@@ -199,14 +258,26 @@ function submit() {
                     <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-red-500"></span>Needs attention</span>
                     <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full opacity-40 bg-surface-400"></span>Marked for deletion</span>
                 </div>
-                <div>
+                <div class="flex items-center gap-5">
                     <span v-if="dirtyOrDeletedCount" class="text-sm text-muted-foreground">
                         {{ dirtyOrDeletedCount }} change(s) pending
                     </span>
                     <Button label="Save Changes" :disabled="!dirtyOrDeletedCount" :loading="form.processing" @click="submit" />
                 </div>
-                
             </div>
         </div>
     </div>
+    <ConfirmDeleteDialog
+        v-model:visible="showDeleteConfirm"
+        header="Confirm Variant Deletion"
+        delete-label="Save & Delete"
+        :processing="form.processing"
+        @confirm="performSubmit"
+    >
+        You're about to permanently delete {{ pendingDeletions.length }} variant(s):
+        <ul class="mt-2 list-disc pl-5">
+            <li v-for="v in pendingDeletions" :key="v.id">{{ variantLabelById(v.id) }}</li>
+        </ul>
+        This will also save any other pending price/stock changes. This action cannot be undone.
+    </ConfirmDeleteDialog>
 </template>
