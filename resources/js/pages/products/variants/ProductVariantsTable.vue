@@ -111,9 +111,9 @@ function variantLabel(variant: VariantRow) {
 function rowClass(data: VariantRow) {
     const working = props.workingLookup(data.id);
     if (working.markedForDelete) return 'opacity-50';
-    if (props.attemptedSubmit && props.invalidIds.has(data.id)) return 'bg-red-50! dark:bg-red-950/30!';
-    if (props.selectedId === data.id) return 'bg-primary-50! dark:bg-primary-950/30!';
-    if (props.dirtyIds.has(data.id)) return 'bg-amber-50! dark:bg-amber-950/30!';
+    if (props.attemptedSubmit && props.invalidIds.has(data.id)) return 'bg-red-50! dark:bg-red-950! ';
+    if (props.selectedId === data.id) return 'bg-primary-50! dark:bg-primary-950!';
+    if (props.dirtyIds.has(data.id)) return 'bg-yellow-50! dark:bg-yellow-950!';
     return '';
 }
 </script>

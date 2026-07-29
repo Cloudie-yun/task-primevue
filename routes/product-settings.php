@@ -57,5 +57,6 @@ Route::middleware(['auth', 'verified'])
         Route::get('/variants', [ProductVariantController::class, 'index'])->name('variants.index');
         Route::get('/{product:slug}/variants', [ProductVariantController::class, 'index'])->name('variants.show');
         Route::put('/{product:slug}/variants', [ProductVariantController::class, 'update'])->name('variants.update');
-    });
 
+        Route::get('/{product:slug}/preview', [ProductController::class, 'preview'])->name('products.preview');
+    });

@@ -308,7 +308,7 @@ function archive() {
                                 </div>
                                 <div
                                     v-if="isEditing"
-                                    class="flex cursor-pointer justify-between rounded-md transition-colors hover:bg-surface-100 dark:hover:bg-surface-800"
+                                    class="flex cursor-pointer justify-between rounded-md transition-colors hover:bg-surface-100 dark:hover:bg-surface-700"
                                     @click="$inertia.visit(variantsShow(product!.slug).url)"
                                     v-tooltip.bottom="'Click here to view variants list'"
                                 >

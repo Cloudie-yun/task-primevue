@@ -132,4 +132,80 @@ class ProductController extends Controller
 
         return back()->with('success', 'Product deleted.');
     }
+
+    public function preview(Product $product)
+    {
+        $product->load([
+            'category',
+            'media',
+            'attributeValues.type',
+            'variants.values.type',
+        ]);
+
+        $staticAttributes = $product->attributeValues
+            ->filter(fn ($value) => ! $value->type->generates_variants)
+            ->map(fn ($value) => [
+                'id' => $value->id,
+                'value' => $value->value,
+                'type' => ['id' => $value->type->id, 'name' => $value->type->name],
+            ])
+            ->values();
+
+        // Build the generating variant types (Color, Size, etc.) purely from what
+        // actually appears on this product's variants — not all VariantType rows.
+        $variantTypes = [];
+        foreach ($product->variants as $variant) {
+            foreach ($variant->values as $value) {
+                if (! $value->type->generates_variants) {
+                    continue;
+                }
+
+                $variantTypes[$value->variant_type_id] ??= [
+                    'id' => $value->variant_type_id,
+                    'name' => $value->type->name,
+                    'values' => [],
+                ];
+
+                $variantTypes[$value->variant_type_id]['values'][$value->id] ??= [
+                    'id' => $value->id,
+                    'value' => $value->value,
+                    'sort_order' => $value->sort_order,
+                ];
+            }
+        }
+
+        $variantTypes = collect($variantTypes)
+            ->map(fn ($type) => [
+                ...$type,
+                'values' => collect($type['values'])->sortBy('sort_order')->values(),
+            ])
+            ->values();
+
+        return Inertia::render('products/Preview', [
+            'product' => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'slug' => $product->slug,
+                'description' => $product->description,
+                'price' => $product->price,
+                'status' => $product->status,
+                'category' => $product->category
+                    ? ['id' => $product->category->id, 'name' => $product->category->name]
+                    : null,
+                'images' => $product->getMedia('images')->map(fn ($media) => [
+                    'id' => $media->id,
+                    'url' => $media->getUrl(),
+                ])->values(),
+                'static_attributes' => $staticAttributes,
+                'variant_types' => $variantTypes,
+                'variants' => $product->variants->map(fn ($variant) => [
+                    'id' => $variant->id,
+                    'sku' => $variant->sku,
+                    'additional_price' => $variant->additional_price,
+                    'stock' => $variant->stock,
+                    'value_ids' => $variant->values->pluck('id')->values(),
+                ]),
+            ],
+        ]);
+    }
 }

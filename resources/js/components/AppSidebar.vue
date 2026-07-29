@@ -55,6 +55,7 @@ const footerNavItems: NavItem[] = [
         icon: BookOpen,
     },
 ];
+
 </script>
 
 <template>

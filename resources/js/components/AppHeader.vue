@@ -52,7 +52,7 @@ const auth = computed(() => page.props.auth);
 const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
 
 const activeItemStyles =
-    'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
+    'text-surface-900 dark:bg-surface-800 dark:text-surface-100';
 
 const mainNavItems: NavItem[] = [
     {
@@ -260,7 +260,7 @@ const rightNavItems: NavItem[] = [
                                         :alt="auth.user.name"
                                     />
                                     <AvatarFallback
-                                        class="rounded-lg bg-neutral-200 font-semibold text-black dark:bg-neutral-700 dark:text-white"
+                                        class="rounded-lg bg-surface-200 font-semibold text-black dark:bg-surface-700 dark:text-white"
                                     >
                                         {{ getInitials(auth.user?.name) }}
                                     </AvatarFallback>

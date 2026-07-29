@@ -39,7 +39,12 @@ createInertiaApp({
             .use(plugin)
             .use(PrimeVue, {
                 // theme: { preset: Aura },
-                theme: { preset: Noir },
+                theme: { 
+                    preset: Noir,
+                    options: {
+                        darkModeSelector: '.dark',
+                    }
+                },
                 // unstyled: true,
                 ripple: true,
                 license: primeUIKey,
