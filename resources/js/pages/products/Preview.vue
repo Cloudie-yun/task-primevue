@@ -4,6 +4,16 @@ import { computed, reactive } from 'vue';
 import type { PreviewProduct } from '@/types/preview';
 import { index as productsIndex } from '@/routes/products';
 import Heading from '@/components/Heading.vue';
+import { ChevronLeft, ChevronRight } from '@primeicons/vue';
+import Gallery from 'primevue/gallery';
+import GalleryPrev from 'primevue/galleryprev';
+import GalleryNext from 'primevue/gallerynext';
+import GalleryContent from 'primevue/gallerycontent';
+import GalleryItem from 'primevue/galleryitem';
+import GalleryFooter from 'primevue/galleryfooter';
+import GalleryThumbnail from 'primevue/gallerythumbnail';
+import GalleryThumbnailContent from 'primevue/gallerythumbnailcontent';
+import GalleryThumbnailItem from 'primevue/gallerythumbnailitem';
 
 defineOptions({
     layout: {
@@ -79,7 +89,7 @@ const galleryImages = computed(() =>
 
         <div class="grid grid-cols-1 gap-10 md:grid-cols-2">
             <!-- Gallery -->
-            <div>
+            <!-- <div>
                 <Galleria
                     :value="galleryImages"
                     :numVisible="5"
@@ -95,6 +105,38 @@ const galleryImages = computed(() =>
                         <img :src="item.url" :alt="product.name" class="aspect-square w-full object-cover" />
                     </template>
                 </Galleria>
+            </div> -->
+            <!-- Gallery -->
+            <div>
+                <Gallery class="overflow-hidden rounded-lg border h-96!">
+                    <GalleryPrev v-if="galleryImages.length > 1">
+                        <ChevronLeft />
+                    </GalleryPrev>
+                    <GalleryNext v-if="galleryImages.length > 1">
+                        <ChevronRight />
+                    </GalleryNext>
+
+                    <GalleryContent>
+                        <GalleryItem v-for="image in galleryImages" :key="image.id">
+                            <img :src="image.url" :alt="product.name" class="aspect-square w-full object-cover" />
+                        </GalleryItem>
+                    </GalleryContent>
+
+                    <GalleryFooter v-if="galleryImages.length > 1"  class="bg-transparent! outline-0! border-0!">
+                        <GalleryThumbnail>
+                            <GalleryThumbnailContent>
+                                <GalleryThumbnailItem
+                                    v-for="(image, index) in galleryImages"
+                                    :key="image.id"
+                                    :index="index"
+                                    class="bg-transparent!"
+                                >
+                                    <img draggable="false" :src="image.url" :alt="product.name" class="h-full w-full object-cover" />
+                                </GalleryThumbnailItem>
+                            </GalleryThumbnailContent>
+                        </GalleryThumbnail>
+                    </GalleryFooter>
+                </Gallery>
             </div>
 
             <!-- Details -->

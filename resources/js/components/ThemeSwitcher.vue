@@ -2,11 +2,10 @@
 import { updatePreset, updateSurfacePalette } from '@primeuix/themes';
 import { Monitor, Moon, Palette, Sun } from '@lucide/vue';
 import { onMounted, ref } from 'vue';
-import { presetColors, type ColorOption } from '@/theme/presetColors';
-import { surfaceColors, type SurfaceOption } from '@/theme/surfaceColors';
-import { loadThemeState, saveThemeState } from '@/theme/persistence';
+import { presetColors, type ColorOption } from '@/themes/presetColors';
+import { surfaceColors, type SurfaceOption } from '@/themes/surfaceColors';
+import { loadThemeState, saveThemeState } from '@/themes/persistence';
 import { useAppearance } from '@/composables/useAppearance';
-import { SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 
 const { appearance, updateAppearance } = useAppearance();
 

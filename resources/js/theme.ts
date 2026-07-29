@@ -16,54 +16,14 @@ const Noir = definePreset(Aura, {
             900: '{indigo.900}',
             950: '{indigo.950}',
         },
-
-        colorScheme: {
-            light: {
-                primary: {
-                    color: '{indigo.500}',
-                    inverseColor: '#ffffff',
-                    hoverColor: '{indigo.600}',
-                    activeColor: '{indigo.700}',
-                },
-                surface: {
-                    0: '#ffffff',
-                    50: '{zinc.50}',
-                    100: '{zinc.100}',
-                    200: '{zinc.200}',
-                    300: '{zinc.300}',
-                    400: '{zinc.400}',
-                    500: '{zinc.500}',
-                    600: '{zinc.600}',
-                    700: '{zinc.700}',
-                    800: '{zinc.800}',
-                    900: '{zinc.900}',
-                    950: '{zinc.950}',
-                },
-            },
-            dark: {
-                primary: {
-                    color: '{zinc.50}',
-                    inverseColor: '{zinc.950}',
-                    hoverColor: '{zinc.100}',
-                    activeColor: '{zinc.200}',
-                },
-                surface: {
-                    0: '#ffffff',
-                    50: '{slate.50}',
-                    100: '{slate.100}',
-                    200: '{slate.200}',
-                    300: '{slate.300}',
-                    400: '{slate.400}',
-                    500: '{slate.500}',
-                    600: '{slate.600}',
-                    700: '{slate.700}',
-                    800: '{slate.800}',
-                    900: '{slate.900}',
-                    950: '{slate.950}',
-                },
-            },
-        },
     },
+    // components: {
+    //     button: {
+    //         root: {
+    //             borderRadius: '999px'
+    //         }
+    //     }
+    // },
 });
 
 export default Noir;

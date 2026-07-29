@@ -90,7 +90,7 @@
 }
 
 :root {
-    --background: var(--p-surface-50);
+    --background: var(--p-surface-100);
     --foreground: var(--p-surface-900);
     --card: var(--p-surface-50);
     --card-foreground: var(--p-surface-900);

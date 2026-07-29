@@ -73,14 +73,14 @@ defineExpose({ open });
                 </GalleryItem>
             </GalleryContent>
 
-            <GalleryFooter class="bg-white! outline-0! border-0!">
+            <GalleryFooter class="bg-transparent! outline-0! border-0!">
                 <GalleryThumbnail>
                     <GalleryThumbnailContent class="bg-white!">
                         <GalleryThumbnailItem
                             v-for="(image, index) in items"
                             :key="image.key"
                             :index="index"
-                            class="bg-white! hover:outline-primary-200!"
+                            class="bg-transparent! hover:outline-primary-200!"
                         >
                             <img
                                 :draggable="false"
