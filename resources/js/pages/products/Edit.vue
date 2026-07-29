@@ -28,7 +28,7 @@ defineProps<{
     <Head title="Edit Product" />
 
     <div class="mx-auto h-full w-full max-w-6xl space-y-6 px-6 py-10 relative max-h-[80vh]">
-            <Heading
+        <Heading
             variant="small"
             :title="`Edit ${product?.name}`"
             description="Update product details"

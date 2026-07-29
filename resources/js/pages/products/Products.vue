@@ -4,8 +4,7 @@ import { ref } from 'vue';
 import Heading from '@/components/Heading.vue';
 import TextLink from '@/components/TextLink.vue';
 import ProductDelete from './ProductDelete.vue';
-import { index as productsIndex, create } from '@/routes/products';
-import { edit as productEdit } from '@/routes/products';
+import { index as productsIndex, create, edit as productEdit, preview as productPreview } from '@/routes/products';
 import { Pencil, Trash } from '@primeicons/vue';
 import type { Product } from '@/types/product';
 import type { PaginatedResponse } from '@/types/pagination';
@@ -56,6 +55,10 @@ function statusSeverity(status: string) {
             return 'secondary';
     }
 }
+
+const onProductClick = (event: { data: Product }) => {
+    router.get(productPreview(event.data.slug).url);
+};
 </script>
 
 <template>
@@ -87,7 +90,9 @@ function statusSeverity(status: string) {
                 :first="(products.current_page - 1) * products.per_page"
                 @page="onPageChange"
                 tableStyle="min-width: 50rem"
+                @row-click="onProductClick"
             >
+            
                 <Column header="Image" headerStyle="width: 10%">
                     <template #body="{ data }">
                         <img

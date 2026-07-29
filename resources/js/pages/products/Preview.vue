@@ -2,6 +2,17 @@
 import { Head } from '@inertiajs/vue3';
 import { computed, reactive } from 'vue';
 import type { PreviewProduct } from '@/types/preview';
+import { index as productsIndex } from '@/routes/products';
+import Heading from '@/components/Heading.vue';
+
+defineOptions({
+    layout: {
+        breadcrumbs: [
+            { title: 'Products List', href: productsIndex() },
+            { title: 'Preview Product', href: '' },
+        ],
+    },
+});
 
 const props = defineProps<{ product: PreviewProduct }>();
 
@@ -53,9 +64,14 @@ const galleryImages = computed(() =>
 </script>
 
 <template>
-    <Head :title="`Preview – ${product.name}`" />
+    <Head :title="`Preview - ${product.name}`" />
 
     <div class="mx-auto max-w-6xl p-6">
+        <Heading
+            variant="small"
+            :title="`Preview - ${product.name}`"
+        />
+
         <div class="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
             <span>Preview mode</span>
             <span v-if="product.category">· {{ product.category.name }}</span>
