@@ -10,8 +10,7 @@ import PrimeVue from 'primevue/config';
 import ConfirmationService from 'primevue/confirmationservice';
 import ToastService from 'primevue/toastservice';
 import Tooltip from 'primevue/tooltip';
-import Aura from '@primeuix/themes/aura';
-import Noir from '@/theme';
+import Noir from '@/themes/index';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 const primeUIKey = import.meta.env.VITE_PRIMEUI_KEY;

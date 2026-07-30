@@ -24,13 +24,28 @@ const props = defineProps<{
     attemptedSubmit: boolean;
     invalidIds: Set<number>;
     dirtyIds: Set<number>;
+    search?: string;
+    loading?: boolean;
 }>();
 
-const emit = defineEmits<{ select: [id: number] }>();
+const emit = defineEmits<{ select: [id: number]; search: [term: string] }>();
 
 // --- Search ---
-const search = ref('');
+const search = ref(props.search ?? '');
+
+// Unscoped view is server-paginated, so filtering has to happen on the
+// backend. Debounce and forward the term to the parent instead of
+// filtering locally. The scoped view is a small, fully-loaded list, so
+// it keeps filtering client-side below.
+let searchTimeout: ReturnType<typeof setTimeout>;
+watch(search, (term) => {
+    if (props.isScoped) return;
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => emit('search', term), 300);
+});
+
 const filteredVariants = computed(() => {
+    if (!props.isScoped) return props.variants;
     const term = search.value.trim().toLowerCase();
     if (!term) return props.variants;
     return props.variants.filter((v) =>
@@ -65,7 +80,7 @@ function valueForType(variant: VariantRow, typeId: number | null): { label: stri
     if (typeId === null) return { label: '', order: 0 };
     const match = variant.values.find((v) => v.variant_type_id === typeId);
     return match ? { label: match.value, order: match.sort_order } : { label: '—', order: Number.MAX_SAFE_INTEGER };
-}
+};
 
 const groupedVariants = computed(() => {
     if (props.isScoped && groupableTypes.value.length) {
@@ -111,15 +126,15 @@ function variantLabel(variant: VariantRow) {
 function rowClass(data: VariantRow) {
     const working = props.workingLookup(data.id);
     if (working.markedForDelete) return 'opacity-50';
-    if (props.attemptedSubmit && props.invalidIds.has(data.id)) return 'bg-red-50! dark:bg-red-950! ';
-    if (props.selectedId === data.id) return 'bg-primary-50! dark:bg-primary-950!';
-    if (props.dirtyIds.has(data.id)) return 'bg-yellow-50! dark:bg-yellow-950!';
+    if (props.attemptedSubmit && props.invalidIds.has(data.id)) return 'bg-red-50! dark:bg-red-950!';
+    if (props.selectedId === data.id) return 'bg-primary-50! dark:bg-primary-900/60!';
+    if (props.dirtyIds.has(data.id)) return 'bg-amber-50! dark:bg-yellow-700/40!';
     return '';
 }
 </script>
 
 <template>
-    <div class="flex flex-wrap items-center gap-3 justify-between">
+    <div class="flex flex-wrap items-center gap-3 justify-between mb-2">
         <div class="flex items-center gap-2">
             <Select
                 v-if="isScoped && groupableTypes.length"
@@ -149,6 +164,7 @@ function rowClass(data: VariantRow) {
     </div>
     <DataTable
         :value="groupedVariants"
+        :loading="loading"
         rowGroupMode="subheader"
         groupRowsBy="_groupValue"
         sortMode="single"
@@ -158,7 +174,7 @@ function rowClass(data: VariantRow) {
         scrollable
         removableSort
         stripedRows 
-        scrollHeight="530px"
+        scrollHeight="535px"
         :rowClass="rowClass"
         @row-click="(e) => emit('select', e.data.id)"
         :pt="{ bodyRow: { class: 'align-middle cursor-pointer' } }"

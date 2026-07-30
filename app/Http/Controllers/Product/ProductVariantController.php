@@ -31,8 +31,17 @@ class ProductVariantController extends Controller
             ]);
         }
 
+        $search = trim((string) $request->query('search', ''));
+
         $variants = ProductVariant::query()
             ->with(['product:id,name', 'values.type'])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('sku', 'like', "%{$search}%")
+                    ->orWhereHas('product', fn ($p) => $p->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('values', fn ($v) => $v->where('value', 'like', "%{$search}%"));
+                });
+            })
             ->orderBy('product_id')
             ->orderBy('id')
             ->paginate(12)
@@ -55,8 +64,9 @@ class ProductVariantController extends Controller
 
         return Inertia::render('products/variants/Index', [
             'product' => null,
-            'variants' => $variants, // now a paginator, same shape as ProductController::index()
-            'products' => $products, // for the filter dropdown, unrelated to variants pagination
+            'variants' => $variants,
+            'products' => $products,
+            'search' => $search, // so the frontend can restore the input on reload/back-nav
         ]);
     }
     

@@ -27,6 +27,7 @@ const props = defineProps<{
 
 const showDeleteDialog = ref(false);
 const productToDelete = ref<Product | null>(null);
+const loading = ref(false);
 
 function openDeleteDialog(product: Product) {
     productToDelete.value = product;
@@ -41,7 +42,13 @@ function onPageChange(event: { page: number }) {
     router.get(
         productsIndex().url,
         { page: event.page + 1 }, // PrimeVue is 0-indexed, Laravel paginator is 1-indexed
-        { preserveState: true, preserveScroll: true, only: ['products'] },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['products'],
+            onStart: () => (loading.value = true),
+            onFinish: () => (loading.value = false),
+        },
     );
 }
 
@@ -57,6 +64,7 @@ function statusSeverity(status: string) {
 }
 
 const onProductClick = (event: { data: Product }) => {
+    if (loading.value) return;
     router.get(productPreview(event.data.slug).url);
 };
 </script>
@@ -64,7 +72,7 @@ const onProductClick = (event: { data: Product }) => {
 <template>
     <Head title="Products List" />
 
-    <div class="flex h-full w-full flex-1 flex-col space-y-6 p-5 max-w-7xl mx-auto">
+    <div class="flex h-full w-full flex-1 flex-col space-y-3 p-5 max-w-7xl mx-auto">
         <div class="flex items-center justify-between">
             <Heading
                 variant="small"
@@ -77,79 +85,94 @@ const onProductClick = (event: { data: Product }) => {
             </Button>
         </div>
 
-        <!-- <div v-if="products.data.length"> -->
-        <div>
-            <DataTable
-                :value="products.data"
-                dataKey="id"
-                stripedRows
-                :lazy="true"
-                :paginator="true"
-                :rows="products.per_page"
-                :totalRecords="products.total"
-                :first="(products.current_page - 1) * products.per_page"
-                @page="onPageChange"
-                tableStyle="min-width: 50rem"
-                @row-click="onProductClick"
-            >
-            
-                <Column header="Image" headerStyle="width: 10%">
-                    <template #body="{ data }">
-                        <img
-                            v-if="data.media?.[0]?.original_url"
-                            :src="data.media[0].original_url"
-                            :alt="data.name"
-                            class="h-12 w-12 rounded-md object-cover"
-                        />
-                        <div v-else class="h-12 w-12 rounded-md bg-muted" />
-                    </template>
-                </Column>
+        <Card>
+            <template #content>
+                <DataTable
+                    :value="products.data"
+                    dataKey="id"
+                    stripedRows
+                    :lazy="true"
+                    :paginator="true"
+                    :rows="products.per_page"
+                    :totalRecords="products.total"
+                    :first="(products.current_page - 1) * products.per_page"
+                    @page="onPageChange"
+                    tableStyle="min-width: 50rem"
+                    @row-click="onProductClick"
+                >
 
-                <Column field="name" header="Name" headerStyle="width: 25%">
-                    <template #body="{ data }">
-                        <span class="font-medium">{{ data.name }}</span>
-                    </template>
-                </Column>
+                    <Column header="Image" headerStyle="width: 10%">
+                        <template #body="{ data }">
+                            <Skeleton v-if="loading" width="3rem" height="3rem" borderRadius="6px" />
+                            <template v-else>
+                                <img
+                                    v-if="data.media?.[0]?.original_url"
+                                    :src="data.media[0].original_url"
+                                    :alt="data.name"
+                                    class="h-12 w-12 rounded-md object-cover"
+                                />
+                                <div v-else class="h-12 w-12 rounded-md bg-muted" />
+                            </template>
+                        </template>
+                    </Column>
 
-                <Column header="Category" headerStyle="width: 15%">
-                    <template #body="{ data }">
-                        <span class="text-muted-foreground">{{ data.category?.name ?? '-' }}</span>
-                    </template>
-                </Column>
+                    <Column field="name" header="Name" headerStyle="width: 25%">
+                        <template #body="{ data }">
+                            <Skeleton v-if="loading" width="10rem" height="1rem" borderRadius="4px" />
+                            <span v-else class="font-medium">{{ data.name }}</span>
+                        </template>
+                    </Column>
 
-                <Column field="price" header="Price" headerStyle="width: 15%">
-                    <template #body="{ data }">
-                        {{ Number(data.price).toLocaleString('en-MY', { style: 'currency', currency: 'MYR' }) }}
-                    </template>
-                </Column>
+                    <Column header="Category" headerStyle="width: 15%">
+                        <template #body="{ data }">
+                            <Skeleton v-if="loading" width="6rem" height="1rem" borderRadius="4px" />
+                            <span v-else class="text-muted-foreground">{{ data.category?.name ?? '-' }}</span>
+                        </template>
+                    </Column>
 
-                <Column header="Status" headerStyle="width: 15%">
-                    <template #body="{ data }">
-                        <Tag :value="data.status" :severity="statusSeverity(data.status)" />
-                    </template>
-                </Column>
+                    <Column field="price" header="Price" headerStyle="width: 15%">
+                        <template #body="{ data }">
+                            <Skeleton v-if="loading" width="5rem" height="1rem" borderRadius="4px" />
+                            <template v-else>
+                                {{ Number(data.price).toLocaleString('en-MY', { style: 'currency', currency: 'MYR' }) }}
+                            </template>
+                        </template>
+                    </Column>
 
-                <Column header="" headerStyle="width: 15%" bodyStyle="text-align:center">
-                    <template #body="{ data }">
-                        <Button as="a" :href="productEdit(data.slug).url" severity="secondary" variant="text" rounded>
-                            <Pencil />
-                        </Button>
-                        <Button severity="danger" variant="text" rounded @click="openDeleteDialog(data)">
-                            <Trash />
-                        </Button>
+                    <Column header="Status" headerStyle="width: 15%">
+                        <template #body="{ data }">
+                            <Skeleton v-if="loading" width="4rem" height="1.5rem" borderRadius="16px" />
+                            <Tag v-else :value="data.status" :severity="statusSeverity(data.status)" />
+                        </template>
+                    </Column>
+
+                    <Column header="" headerStyle="width: 15%" bodyStyle="text-align:center">
+                        <template #body="{ data }">
+                            <template v-if="loading">
+                                <Skeleton width="4.5rem" height="2rem" borderRadius="6px" class="inline-block" />
+                            </template>
+                            <template v-else>
+                                <Button as="a" :href="productEdit(data.slug).url" severity="secondary" variant="text" rounded @click.stop>
+                                    <Pencil />
+                                </Button>
+                                <Button severity="danger" variant="text" rounded @click.stop="openDeleteDialog(data)">
+                                    <Trash />
+                                </Button>
+                            </template>
+                        </template>
+                    </Column>
+                    <template #empty>
+                        <p class="text-sm text-muted-foreground text-center p-5">
+                            No products yet.
+                            <TextLink :href="create().url">
+                                Create one now
+                            </TextLink>
+                        </p>
                     </template>
-                </Column>
-                <template #empty>
-                    <p class="text-sm text-muted-foreground text-center p-5">
-                        No products yet.
-                        <TextLink :href="create().url">
-                            Create one now
-                        </TextLink>
-                    </p>
-                </template>
-            </DataTable>
-            
-        </div>
+                </DataTable>
+            </template>
+        </Card>
+
         <ProductDelete v-model:visible="showDeleteDialog" :product="productToDelete" @deleted="handleDeleted" />
     </div>
 </template>

@@ -4,7 +4,7 @@ import { router } from '@inertiajs/vue3';
 import { usePasskeyVerify } from '@laravel/passkeys/vue';
 import { KeyRound } from '@lucide/vue';
 import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
+// import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -40,8 +40,8 @@ const { verify, isLoading, error, isSupported } = usePasskeyVerify({
         <div class="grid gap-2">
             <Button
                 type="button"
-                variant="outline"
-                class="w-full"
+                variant="outlined"
+                fluid
                 @click="verify"
                 :disabled="isLoading"
             >

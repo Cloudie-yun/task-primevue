@@ -5,8 +5,25 @@ export interface ColorOption {
     palette: Record<string, string> | Record<string, never>;
 }
 
+// Custom brand palette — not from Tailwind's stock colors.
+// A cobalt/azure hue tuned for a distinct, less "generic SaaS blue" feel.
+const brand: Record<string, string> = {
+    50: '#f2f1fd',
+    100: '#e6e4fa',
+    200: '#cfccf5',
+    300: '#aea8ec',
+    400: '#8a80e0',
+    500: '#6c5fd3',
+    600: '#5847bd',
+    700: '#48389a',
+    800: '#3c2f7c',
+    900: '#332964',
+    950: '#1f1840',
+};
+
 export const presetColors: ColorOption[] = [
     { name: 'noir', palette: {} },
+    { name: 'brand', palette: brand },
     { name: 'emerald', palette: colors.emerald },
     { name: 'green', palette: colors.green },
     { name: 'lime', palette: colors.lime },

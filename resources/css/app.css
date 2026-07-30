@@ -94,7 +94,7 @@
     --foreground: var(--p-surface-900);
     --card: var(--p-surface-50);
     --card-foreground: var(--p-surface-900);
-    --popover: var(--p-surface-50);
+    --popover: var(--p-surface-200);
     --popover-foreground: var(--p-surface-900);
     --primary: hsl(0 0% 9%);
     --primary-foreground: hsl(0 0% 98%);
@@ -129,7 +129,7 @@
 .dark {
     --background: var(--p-surface-900);
     --foreground: var(--p-surface-0);
-    --card: var(--p-surface-800);
+    --card: var(--p-surface-700);
     --card-foreground: var(--p-surface-0);
     --popover: var(--p-surface-800);
     --popover-foreground: var(--p-surface-0);

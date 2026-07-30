@@ -108,7 +108,13 @@ const galleryImages = computed(() =>
             </div> -->
             <!-- Gallery -->
             <div>
-                <Gallery class="overflow-hidden rounded-lg border h-96!">
+                <Gallery 
+                    class="overflow-hidden rounded-lg border h-96!"
+                    :pt="{
+                        GalleryPrev: { class: 'bg-primary-100!' },
+                        GalleryNext: { class: '' },
+                    }"
+                >
                     <GalleryPrev v-if="galleryImages.length > 1">
                         <ChevronLeft />
                     </GalleryPrev>

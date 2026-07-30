@@ -55,7 +55,8 @@ defineExpose({ open });
 
 <template>
     <Dialog v-model:visible="visible" modal :style="{ width: '40rem' }" header="Product Images">
-        <Gallery :key="items.length" v-model:activeIndex="activeIndex" class="w-full not-data-fullscreen:h-96!">            <GalleryPrev class="text-zinc-500! bg-black/10! opacity-70 hover:opacity-100">
+        <Gallery :key="items.length" v-model:activeIndex="activeIndex" class="w-full not-data-fullscreen:h-96!">            
+            <GalleryPrev class="text-zinc-500! bg-black/10! opacity-70 hover:opacity-100">
                 <ChevronLeft />
             </GalleryPrev>
             <GalleryNext class="text-zinc-500! bg-black/10! opacity-70 hover:opacity-100">

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { useToast } from 'primevue/usetoast';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { variantRowSchema } from '@/validation/product';
 import { index as productsIndex, edit as productsEdit } from '@/routes/products';
 import { index as variantsIndex, show as variantsShow, update as variantsUpdate } from '@/routes/products/variants';
@@ -15,6 +15,7 @@ const props = defineProps<{
     variants: VariantRow[] | PaginatedResponse<VariantRow>;
     products: { label: string; items: { id: number; name: string; slug: string }[] }[];
     cameFromBrowse?: boolean;
+    search?: string;
 }>();
 
 const variantRows = computed<VariantRow[]>(() =>
@@ -45,6 +46,29 @@ function goToProduct(productId: number | null) {
     if (!productId) { router.get(variantsIndex().url); return; }
     const slug = props.products.flatMap((g) => g.items).find((p) => p.id === productId)?.slug;
     if (slug) router.get(variantsShow(slug).url, { from: 'browse' });
+}
+
+// --- Search (unscoped/paginated view only) ---
+const searching = ref(false);
+let searchRequestId = 0;
+
+function onSearch(term: string) {
+    const requestId = ++searchRequestId;
+    searching.value = true;
+    router.get(
+        variantsIndex().url,
+        term ? { search: term } : {},
+        {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+            only: ['variants', 'search'],
+            onFinish: () => {
+                // Ignore stray finish events from requests superseded by a newer keystroke
+                if (requestId === searchRequestId) searching.value = false;
+            },
+        }
+    );
 }
 
 // --- Working copy of price/stock, per variant id ---
@@ -146,6 +170,14 @@ function resyncWorkingState() {
         markedForDelete: false,
     }));
 }
+
+watch(variantRows, () => {
+    resyncWorkingState();
+    if (selectedVariantId.value !== null && !variantRows.value.some((v) => v.id === selectedVariantId.value)) {
+        selectedVariantId.value = null;
+    }
+});
+
 // --- Submit ---
 const toast = useToast();
 
@@ -190,7 +222,7 @@ function performSubmit() {
     <Head title="Product Variants" />
 
     <div class="p-6">
-        <div class="mx-auto flex max-w-7xl flex-col gap-6">
+        <div class="mx-auto flex max-w-7xl flex-col gap-5">
             <div>
                 <h1 class="text-2xl font-semibold">{{ isScoped ? `${product!.name} variants` : 'All Variants' }}</h1>
                 <p class="text-sm text-muted-foreground">
@@ -232,39 +264,47 @@ function performSubmit() {
             >
                 Select a row below to edit its price and stock.
         </div>
-            <ProductVariantsTable
-                :variants="variantRows"
-                :is-scoped="isScoped"
-                :product-slug="product?.slug"
-                :working-lookup="(id: number) => workingRow(id)"
-                :selected-id="selectedVariantId"
-                :attempted-submit="attemptedSubmit"
-                :invalid-ids="invalidIds"
-                :dirty-ids="dirtyIds"
-                @select="selectVariant"
-            />
+        <Card>
+            <template #content >
+                <ProductVariantsTable
+                    :variants="variantRows"
+                    :is-scoped="isScoped"
+                    :product-slug="product?.slug"
+                    :working-lookup="(id: number) => workingRow(id)"
+                    :selected-id="selectedVariantId"
+                    :loading="searching"
+                    :attempted-submit="attemptedSubmit"
+                    :invalid-ids="invalidIds"
+                    :dirty-ids="dirtyIds"
+                    :search="search"
+                    @select="selectVariant"
+                    @search="onSearch"
+                />
 
-            <Paginator
-                v-if="!isScoped && !Array.isArray(variants)"
-                :rows="variants.per_page"
-                :totalRecords="variants.total"
-                :first="(variants.current_page - 1) * variants.per_page"
-                @page="(e) => router.get(variantsIndex().url, { page: e.page + 1 }, { preserveScroll: true })"
-            />
+                <Paginator
+                    v-if="!isScoped && !Array.isArray(variants)"
+                    :rows="variants.per_page"
+                    :totalRecords="variants.total"
+                    :first="(variants.current_page - 1) * variants.per_page"
+                    @page="(e) => router.get(variantsIndex().url, { page: e.page + 1, search }, { preserveScroll: true, only: ['variants', 'search'] })"
+                />
 
-            <div v-if="isScoped" class="flex items-start justify-between gap-3">
-                <div class="flex gap-4 text-xs text-muted-foreground">
-                    <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-amber-400"></span>Unsaved change</span>
-                    <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-red-500"></span>Needs attention</span>
-                    <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full opacity-40 bg-surface-400"></span>Marked for deletion</span>
-                </div>
-                <div class="flex items-center gap-5">
-                    <span v-if="dirtyOrDeletedCount" class="text-sm text-muted-foreground">
-                        {{ dirtyOrDeletedCount }} change(s) pending
-                    </span>
-                    <Button label="Save Changes" :disabled="!dirtyOrDeletedCount" :loading="form.processing" @click="submit" />
-                </div>
-            </div>
+                <div v-if="isScoped" class="flex items-start justify-between gap-3 mt-2">
+                    <div class="flex gap-4 text-xs text-muted-foreground">
+                        <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-amber-400 dark:bg-amber-500"></span>Unsaved change</span>
+                        <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-red-500 dark:bg-red-400"></span>Needs attention</span>
+                        <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full opacity-40 bg-surface-400"></span>Marked for deletion</span>
+                    </div>
+                    <div class="flex items-center gap-5">
+                        <span v-if="dirtyOrDeletedCount" class="text-sm text-muted-foreground">
+                            {{ dirtyOrDeletedCount }} change(s) pending
+                        </span>
+                        <Button label="Save Changes" :disabled="!dirtyOrDeletedCount" :loading="form.processing" @click="submit" />
+                    </div>
+                </div>    
+            </template>
+        </Card>
+            
         </div>
     </div>
     <ConfirmDeleteDialog
