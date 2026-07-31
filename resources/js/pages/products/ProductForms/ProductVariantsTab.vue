@@ -35,7 +35,7 @@ defineExpose({ validate, hasNoSelections });
             v-model:attributeValueIds="attributeValueIds"
             :variant-types="variantTypes"
         />
-        <div class="flex justify-end">
+        <div v-if="product" class="flex justify-end">
             <Button label="View Variants List" @click="$inertia.visit(variantsShow(product!.slug).url)" />
         </div>
     </div>

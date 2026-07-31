@@ -31,7 +31,6 @@ export const presetColors: ColorOption[] = [
     { name: 'amber', palette: colors.amber },
     { name: 'yellow', palette: colors.yellow },
     { name: 'teal', palette: colors.teal },
-    { name: 'teal', palette: colors.teal },
     { name: 'cyan', palette: colors.cyan },
     { name: 'sky', palette: colors.sky },
     { name: 'blue', palette: colors.blue },
