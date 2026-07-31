@@ -96,10 +96,10 @@ const galleryImages = computed(() =>
                         GalleryNext: { class: '' },
                     }"
                 >
-                    <GalleryPrev v-if="galleryImages.length > 1" class="opacity-70 hover:opacity-100 text-primary-500! bg-surface-500/50 dark:bg-surface-300! dark:text-primary-800!">
+                    <GalleryPrev v-if="galleryImages.length > 1" class="opacity-70 hover:opacity-100 text-primary-800! bg-surface-300! dark:bg-surface-300! dark:text-primary-800!">
                         <ChevronLeft />
                     </GalleryPrev>
-                    <GalleryNext v-if="galleryImages.length > 1" class="opacity-70 hover:opacity-100 text-primary-500! bg-surface-500/50 dark:bg-surface-300! dark:text-primary-800!">
+                    <GalleryNext v-if="galleryImages.length > 1" class="opacity-70 hover:opacity-100 text-primary-800! bg-surface-300! dark:bg-surface-300! dark:text-primary-800!">
                         <ChevronRight />
                     </GalleryNext>
 
