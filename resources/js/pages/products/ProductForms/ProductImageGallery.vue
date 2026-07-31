@@ -56,10 +56,10 @@ defineExpose({ open });
 <template>
     <Dialog v-model:visible="visible" modal :style="{ width: '40rem' }" header="Product Images">
         <Gallery :key="items.length" v-model:activeIndex="activeIndex" class="w-full not-data-fullscreen:h-96!">            
-            <GalleryPrev class="text-zinc-500! bg-black/10! opacity-70 hover:opacity-100">
+            <GalleryPrev class="opacity-70 hover:opacity-100 text-primary-500! bg-surface-500/50 dark:bg-surface-300! dark:text-primary-800!">
                 <ChevronLeft />
             </GalleryPrev>
-            <GalleryNext class="text-zinc-500! bg-black/10! opacity-70 hover:opacity-100">
+            <GalleryNext class="opacity-70 hover:opacity-100 text-primary-500! bg-surface-500/50 dark:bg-surface-300! dark:text-primary-800!">
                 <ChevronRight />
             </GalleryNext>
 
@@ -76,7 +76,7 @@ defineExpose({ open });
 
             <GalleryFooter class="bg-transparent! outline-0! border-0!">
                 <GalleryThumbnail>
-                    <GalleryThumbnailContent class="bg-white!">
+                    <GalleryThumbnailContent>
                         <GalleryThumbnailItem
                             v-for="(image, index) in items"
                             :key="image.key"

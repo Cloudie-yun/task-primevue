@@ -88,25 +88,6 @@ const galleryImages = computed(() =>
         </div>
 
         <div class="grid grid-cols-1 gap-10 md:grid-cols-2">
-            <!-- Gallery -->
-            <!-- <div>
-                <Galleria
-                    :value="galleryImages"
-                    :numVisible="5"
-                    :showThumbnails="galleryImages.length > 1"
-                    :showIndicators="galleryImages.length > 1"
-                    :circular="true"
-                    containerClass="rounded-lg overflow-hidden border"
-                >
-                    <template #item="{ item }">
-                        <img :src="item.url" :alt="product.name" class="aspect-square w-full object-cover" />
-                    </template>
-                    <template #thumbnail="{ item }">
-                        <img :src="item.url" :alt="product.name" class="aspect-square w-full object-cover" />
-                    </template>
-                </Galleria>
-            </div> -->
-            <!-- Gallery -->
             <div>
                 <Gallery 
                     class="overflow-hidden rounded-lg border h-96!"
@@ -115,10 +96,10 @@ const galleryImages = computed(() =>
                         GalleryNext: { class: '' },
                     }"
                 >
-                    <GalleryPrev v-if="galleryImages.length > 1">
+                    <GalleryPrev v-if="galleryImages.length > 1" class="opacity-70 hover:opacity-100 text-primary-500! bg-surface-500/50 dark:bg-surface-300! dark:text-primary-800!">
                         <ChevronLeft />
                     </GalleryPrev>
-                    <GalleryNext v-if="galleryImages.length > 1">
+                    <GalleryNext v-if="galleryImages.length > 1" class="opacity-70 hover:opacity-100 text-primary-500! bg-surface-500/50 dark:bg-surface-300! dark:text-primary-800!">
                         <ChevronRight />
                     </GalleryNext>
 
@@ -135,7 +116,7 @@ const galleryImages = computed(() =>
                                     v-for="(image, index) in galleryImages"
                                     :key="image.id"
                                     :index="index"
-                                    class="bg-transparent!"
+                                    class="bg-transparent! hover:outline-primary-200!"
                                 >
                                     <img draggable="false" :src="image.url" :alt="product.name" class="h-full w-full object-cover" />
                                 </GalleryThumbnailItem>

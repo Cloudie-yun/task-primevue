@@ -100,10 +100,40 @@ const Noir = definePreset(Aura, {
                 fontWeight: 'var(--app-font-weight, {form.field.font.weight})',
             },
         },
+        popover: {
+            root: {
+                background: 'var(--popover)',
+                borderRadius: 'var(--app-border-radius, {border.radius.md})',
+            },
+        },
+        dialog: {
+            root: {
+                background: 'var(--dialog)',
+                borderRadius: 'var(--app-border-radius, {border.radius.md})',
+            },
+        },
         inputtext: {
             root: {
                 borderRadius: 'var(--app-border-radius, {border.radius.md})',
                 fontSize: 'var(--app-font-size, {form.field.font.size})',
+            },
+        },
+        datatable: {
+            headerCell: {
+                background: 'var(--card)',
+                hoverBackground: 'color-mix(in srgb, {surface.500}, transparent 92%)',
+                selectedBackground: 'color-mix(in srgb, {primary.color}, transparent 88%)',
+                selectedColor: '{primary.color}',
+            },
+            row: {
+                stripedBackground: 'color-mix(in srgb, {surface.500}, transparent 96%)',
+                hoverBackground: 'color-mix(in srgb, {surface.500}, transparent 92%)',
+                selectedBackground: 'color-mix(in srgb, {primary.color}, transparent 88%)',
+                selectedColor: '{primary.color}',
+            },
+            footer: {
+                background: 'var(--card)',
+                borderColor: 'var(--border)',
             },
         },
     },

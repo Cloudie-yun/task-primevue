@@ -216,7 +216,7 @@ defineExpose({ reset, hasNoImages });
             :showUploadButton="false"
             :showCancelButton="false"
             :pt="{ 
-                root: { class: 'border-0!' },
+                root: { class: 'border-0! p-0! bg-transparent!' },
                 header: { class: 'hidden!'},
             }"
             @select="handleSelect"
@@ -247,21 +247,20 @@ defineExpose({ reset, hasNoImages });
                         </div>
                     </div>
                     <div
-                        class="flex h-full min-h-34 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-surface-200 text-muted-color transition-colors hover:border-primary-400 dark:border-surface-700"
+                        class="flex h-full min-h-32 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-surface-200 text-muted-color transition-colors hover:border-primary-400 dark:border-surface-300!"
                         @click="openFileDialog"
                     >
-            <Plus />
-            <span class="text-xs">Add more</span>
-        </div>
+                        <Plus />
+                        <span class="text-xs">Add more</span>
+                    </div>
                 </div>
             </template>
-
             <template #empty>
                 <div
-                    class="cursor-pointer rounded-xl border-2 border-dashed p-12 py-24 text-center transition-colors hover:border-primary-400 dark:border-surface-700"
+                    class="cursor-pointer rounded-xl border-2 border-dashed p-12 py-24 text-center transition-colors hover:border-primary-400 dark:hover:border-primary-500!"
                     :class="{
-                        'border-red-500': validationErrors.length || hasNoImages || errors?.length,
-                        'border-surface-200': !(validationErrors.length || hasNoImages || errors?.length)
+                        'border-red-500 dark:border-red-800!': validationErrors.length || hasNoImages || errors?.length,
+                        'border-surface-200 dark:border-surface-400!': !(validationErrors.length || errors?.length)
                     }"
                     @click="openFileDialog"
                 >

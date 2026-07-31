@@ -96,6 +96,8 @@
     --card-foreground: var(--p-surface-900);
     --popover: var(--p-surface-200);
     --popover-foreground: var(--p-surface-900);
+    --dialog: var(--p-surface-50);
+    --dialog-foreground: var(--p-surface-900);
     --primary: hsl(0 0% 9%);
     --primary-foreground: hsl(0 0% 98%);
     --secondary: hsl(0 0% 92.1%);
@@ -133,6 +135,8 @@
     --card-foreground: var(--p-surface-0);
     --popover: var(--p-surface-800);
     --popover-foreground: var(--p-surface-0);
+    --dialog: var(--p-surface-800);
+    --dialog-foreground: var(--p-surface-0);
     --primary: hsl(0 0% 98%);
     --primary-foreground: hsl(0 0% 9%);
     --secondary: hsl(0 0% 14.9%);

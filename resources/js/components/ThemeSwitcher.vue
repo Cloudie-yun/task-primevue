@@ -23,6 +23,20 @@ function togglePopover(event: Event) {
     popoverRef.value?.toggle(event);
 }
 
+function getLuminance(hex: string): number {
+    const rgb = hex.replace('#', '').match(/.{2}/g)!.map(c => {
+        const v = parseInt(c, 16) / 255;
+        return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+}
+
+function pickContrastColor(hex: string): string {
+    // luminance threshold ~0.4 tends to match perceived readability
+    // better than the naive 0.5 midpoint for saturated UI colors
+    return getLuminance(hex) > 0.4 ? '#0a0a0a' : '#ffffff';
+}
+
 function buildPrimaryOverride(color: ColorOption) {
     if (color.name === 'noir') {
         return {
@@ -45,17 +59,18 @@ function buildPrimaryOverride(color: ColorOption) {
             },
         };
     }
-
+    const lightContrast = pickContrastColor(color.palette[500]);
+    const darkContrast = pickContrastColor(color.palette[400]);
     return {
         semantic: {
             primary: color.palette,
             colorScheme: {
                 light: {
-                    primary: { color: '{primary.500}', contrastColor: '#ffffff', hoverColor: '{primary.600}', activeColor: '{primary.700}' },
+                    primary: { color: '{primary.500}', contrastColor: lightContrast, hoverColor: '{primary.600}', activeColor: '{primary.700}' },
                     highlight: { background: '{primary.50}', focusBackground: '{primary.100}', color: '{primary.700}', focusColor: '{primary.800}' },
                 },
                 dark: {
-                    primary: { color: '{primary.400}', contrastColor: '{surface.900}', hoverColor: '{primary.300}', activeColor: '{primary.200}' },
+                    primary: { color: '{primary.400}', contrastColor: darkContrast, hoverColor: '{primary.300}', activeColor: '{primary.200}' },
                     highlight: {
                         background: 'color-mix(in srgb, {primary.400}, transparent 84%)',
                         focusBackground: 'color-mix(in srgb, {primary.400}, transparent 76%)',

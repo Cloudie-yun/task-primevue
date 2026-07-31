@@ -291,8 +291,8 @@ function performSubmit() {
 
                 <div v-if="isScoped" class="flex items-start justify-between gap-3 mt-2">
                     <div class="flex gap-4 text-xs text-muted-foreground">
-                        <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-amber-400 dark:bg-amber-500"></span>Unsaved change</span>
-                        <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-red-500 dark:bg-red-400"></span>Needs attention</span>
+                        <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-primary-400 dark:bg-primary-800"></span>Unsaved change</span>
+                        <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full bg-red-500 dark:bg-red-600"></span>Needs attention</span>
                         <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-full opacity-40 bg-surface-400"></span>Marked for deletion</span>
                     </div>
                     <div class="flex items-center gap-5">

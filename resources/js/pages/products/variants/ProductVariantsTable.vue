@@ -125,10 +125,10 @@ function variantLabel(variant: VariantRow) {
 
 function rowClass(data: VariantRow) {
     const working = props.workingLookup(data.id);
-    if (working.markedForDelete) return 'opacity-50';
-    if (props.attemptedSubmit && props.invalidIds.has(data.id)) return 'bg-red-50! dark:bg-red-950!';
-    if (props.selectedId === data.id) return 'bg-primary-50! dark:bg-primary-900/60!';
-    if (props.dirtyIds.has(data.id)) return 'bg-amber-50! dark:bg-yellow-700/40!';
+    if (working.markedForDelete) return 'opacity-40!';
+    if (props.attemptedSubmit && props.invalidIds.has(data.id)) return 'bg-red-50! dark:bg-red-900/60!';
+    if (props.selectedId === data.id) return 'bg-primary-50! dark:bg-primary-900/80!';
+    if (props.dirtyIds.has(data.id)) return 'bg-primary-50! dark:bg-primary-800/20!';
     return '';
 }
 </script>
